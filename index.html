@@ -119,8 +119,22 @@
         </section>
     </div>
     
-    <!-- RIMOSSO: Script per animazione complessa -->
-    <!-- <script> ... </script> -->
+    <!-- === SCRIPT REGISTRAZIONE SERVICE WORKER AGGIUNTO === -->
+    <script>
+        // Questo codice registra il Service Worker (sw.js)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js') // Assicurati che il percorso sia corretto
+                    .then(registration => {
+                        console.log('Service Worker registrato con successo:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Registrazione Service Worker fallita:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
+
 
