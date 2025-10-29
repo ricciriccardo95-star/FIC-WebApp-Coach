@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIC - COACH</title>
+    <!-- Tailwind CSS CDN --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Stili per lo sfondo e le card (presi dalla tua app atleti) --><style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0F172A; /* Slate 900 */
+            color: #E2E8F0; /* Slate 200 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* overflow-x: hidden; */ /* Rimosso - Non più necessario senza animazione */
+        }
+        .background-gradient {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            filter: blur(100px); z-index: -1;
+        }
+        .gradient-1 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.3), transparent 70%);
+            animation: pulse 10s infinite alternate;
+        }
+        .gradient-2 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 70%);
+            animation: pulse 12s infinite alternate-reverse;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9) rotate(0deg); }
+            100% { transform: scale(1.2) rotate(20deg); }
+        }
+        
+        /* Stili per l'animazione (rimosso #animation-logo e classi) */
+
+        .nav-card {
+            /* Mantenuta transizione solo per hover effect */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            /* opacity: 0; */ /* Rimosso */
+        }
+        .nav-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Classi per la posizione iniziale delle card (rimosse) */
+        /* .card-left { ... } */
+        /* .card-right { ... } */
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Sfondi animati --><div class="background-gradient gradient-1"></div>
+    <div class="background-gradient gradient-2"></div>
+
+    <!-- RIMOSSO: Elemento per animazione iniziale (centro schermo) -->
+    <!-- <div id="animation-logo"> ... </div> -->
+
+    <!-- Contenitore principale --><div class="p-4 md:p-8 max-w-7xl mx-auto">
+        
+        <!-- Header Semplificato per Coach -->
+        <!-- RIMOSSO: opacity-0 e transition-opacity -->
+        <div id="header-container" class="flex justify-center items-center mb-10 border-b border-slate-700 pb-4">
+            <img src="logo.png" alt="Logo FIC" class="h-14 md:h-16 w-auto mr-4">
+            <h1 class="text-3xl md:text-4xl font-black text-slate-100 tracking-tight whitespace-nowrap">
+                FIC - COACH
+            </h1>
+        </div>
+
+        <!-- Sezione con i riquadri --><section id="home-page-coach">
+            <div class="flex flex-col items-center justify-center min-h-[70vh]">
+                <!-- RIMOSSO: opacity-0 e transition-opacity -->
+                <p id="subtitle-container" class="text-base md:text-xl text-slate-400 text-center mb-12 md:mb-16">
+                    Visualizzazione dati e calendario per allenatori.
+                </p>
+                
+                <!-- Contenitore per i riquadri -->
+                <div id="cards-container" class="grid grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto w-full">
+                    
+                    <!-- Riquadro Risultati --><!-- RIMOSSO: ID e classe card-left -->
+                    <a href="RANKING/home_ranking.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="text-5xl md:text-7xl mb-4">📊</div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Risultati</h2>
+                        <p class="text-slate-400 mt-2">Visualizza i ranking e i risultati degli atleti.</p>
+                    </a>
+                    
+                    <!-- Riquadro Calendario --><!-- RIMOSSO: ID e classe card-right -->
+                    <a href="CALENDARIO/calendario.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="text-5xl md:text-7xl mb-4">🗓️</div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Calendario</h2>
+                        <p class="text-slate-400 mt-2">Consulta la programmazione degli allenamenti.</p>
+                    </a>
+
+                    <!-- Riquadro Convocazioni --><!-- RIMOSSO: ID e classe card-left -->
+                    <a href="CONVOCAZIONI/convocazioni.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="text-5xl md:text-7xl mb-4">📋</div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Convocazioni</h2>
+                        <p class="text-slate-400 mt-2">Visualizza gli atleti convocati per raduni ed eventi.</p>
+                    </a>
+
+                    <!-- Riquadro Dispendi --><!-- RIMOSSO: ID e classe card-right -->
+                    <a href="DISPENDIO/dispendi.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="text-5xl md:text-7xl mb-4">🧮</div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Dispendi</h2>
+                        <p class="text-slate-400 mt-2">Calcola i dispendi energetici degli atleti.</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- RIMOSSO: Script per animazione complessa -->
+    <!-- <script> ... </script> -->
+</body>
+</html>
+

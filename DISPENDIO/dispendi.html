@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispendi Energetici - Calcolatore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0F172A; /* bg-slate-900 */
+            color: #E2E8F0; /* text-slate-200 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            padding-bottom: 2rem;
+        }
+        .background-gradient {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            filter: blur(100px); z-index: -1;
+        }
+        .gradient-1 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.3), transparent 70%);
+            animation: pulse 10s infinite alternate;
+        }
+        .gradient-2 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 70%);
+            animation: pulse 12s infinite alternate-reverse;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9) rotate(0deg); }
+            100% { transform: scale(1.2) rotate(20deg); }
+        }
+        .input-group { margin-bottom: 1.5rem; }
+        .input-group label {
+            display: block;
+            color: #94A3B8; /* slate-400 */
+            font-weight: 500; /* medium */
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.75rem 1rem; /* p-3 */
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #334155; /* border-slate-700 */
+            background-color: #1E293B; /* bg-slate-800 */
+            color: #E2E8F0; /* text-slate-200 */
+            outline: none;
+        }
+        .input-field::placeholder {
+            color: #64748B; /* slate-500 */
+        }
+        .input-field:focus {
+            border-color: #3B82F6; /* focus:border-sky-500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            background-color: #3B82F6; /* bg-sky-600 */
+            color: white;
+            font-weight: 600; /* semibold */
+            transition: background-color 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        .btn:hover {
+            background-color: #2563EB; /* bg-sky-700 */
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #334155; /* bg-slate-700 */
+        }
+        .input-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #334155;
+            background-color: #1E293B;
+            color: #E2E8F0;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.25em 1.25em;
+        }
+        .input-group select:focus {
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .input-group select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #334155; /* bg-slate-700 */
+        }
+        .result-container {
+            margin-top: 1rem;
+            padding: 1rem 1.5rem;
+            background-color: #1E293B; /* bg-slate-800 */
+            border: 1px solid #334155; /* border-slate-700 */
+            border-radius: 0.75rem; /* rounded-xl */
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* semibold */
+            color: #E2E8F0; /* text-slate-200 */
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.3s ease-in-out;
+        }
+        .result-label {
+            color: #94A3B8; /* slate-400 */
+            font-size: 0.875rem; /* text-sm */
+            margin-right: 1rem;
+        }
+        .result-value {
+            font-family: monospace;
+            font-weight: 700; /* bold */
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="background-gradient gradient-1"></div>
+    <div class="background-gradient gradient-2"></div>
+
+    <div class="p-4 md:p-8 max-w-2xl mx-auto relative z-10">
+        <header class="mb-8 flex justify-between items-center border-b border-slate-700 pb-4">
+             <h1 class="text-2xl sm:text-3xl md:text-4xl font-black text-slate-100 whitespace-nowrap">Dispendi Energetici</h1>
+             <a href="../index.html" class="inline-flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold rounded-lg shadow transition-colors text-sm flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                Home
+            </a>
+        </header>
+
+        <!-- Container principale -->
+        <div class="space-y-8">
+
+            <!-- Calcolatore Dispendi RowErg -->
+            <div class="bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg p-6">
+                <h2 class="text-xl sm:text-2xl font-bold text-white mb-6 whitespace-nowrap">🚣‍♂️ Calcolo Dispendi RowErg</h2>
+                
+                <!-- Input Record -->
+                <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    <div class="sm:col-span-2">
+                        <label for="inputRowergRecord">Record RowErg (2000m)</label>
+                        <input type="tel" id="inputRowergRecord" placeholder="mm:ss.s" class="input-field" inputmode="decimal" maxlength="7">
+                    </div>
+                    <button id="setRowergRecordBtn" class="btn">Imposta</button>
+                </div>
+
+                <!-- Risultati Record -->
+                <div id="rowerg-record-results" class="mb-6 space-y-2 hidden">
+                    <div id="record-media-rowerg-container" class="result-container">
+                        <span class="result-label">Media /500m:</span>
+                        <span class="result-value">-</span>
+                    </div>
+                    <div id="record-watt-rowerg-container" class="result-container">
+                        <span class="result-label">Watt Record:</span>
+                        <span class="result-value">-</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700 my-6"></div>
+
+                <!-- Input Percentuale -->
+                <div class="input-group">
+                    <label for="percentageSelectRowerg">Seleziona una percentuale:</label>
+                    <select id="percentageSelectRowerg" class="w-full" onchange="calculatePercentageRowerg()" disabled>
+                        <option value="">Imposta un record...</option>
+                        <!-- Opzioni Percentuali -->
+                        <script>
+                            const percentages = [50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130];
+                            percentages.forEach(p => document.write(`<option value="${p}">${p}%</option>`));
+                        </script>
+                    </select>
+                </div>
+
+                <!-- Risultati Percentuale -->
+                <div id="percentage-rowerg-results" class="space-y-2 hidden">
+                    <div id="percentage-watt-rowerg-container" class="result-container">
+                        <span class="result-label">Watt Dispendio:</span>
+                        <span class="result-value">-</span>
+                    </div>
+                    <div id="percentage-time-rowerg-container" class="result-container">
+                        <span class="result-label">Tempo Equivalente (2k):</span>
+                        <span class="result-value">-</span>
+                    </div>
+                    <div id="percentage-media-rowerg-container" class="result-container">
+                         <span class="result-label">Media /500m Dispendio:</span>
+                         <span class="result-value">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calcolatore Dispendi BikeErg -->
+            <div class="bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg p-6">
+                <h2 class="text-xl sm:text-2xl font-bold text-white mb-6 whitespace-nowrap">🚴‍♂️ Calcolo Dispendi BikeErg</h2>
+                
+                <!-- Input Record -->
+                <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    <div class="sm:col-span-2">
+                        <label for="inputBikeergRecord">Record BikeErg (4000m)</label>
+                        <input type="tel" id="inputBikeergRecord" placeholder="mm:ss.s" class="input-field" inputmode="decimal" maxlength="7">
+                    </div>
+                    <button id="setBikeergRecordBtn" class="btn">Imposta</button>
+                </div>
+
+                <!-- Risultati Record -->
+                <div id="bikeerg-record-results" class="mb-6 space-y-2 hidden">
+                    <div id="record-media-bikeerg-container" class="result-container">
+                        <span class="result-label">Media /1000m:</span>
+                        <span class="result-value">-</span>
+                    </div>
+                    <div id="record-watt-bikeerg-container" class="result-container">
+                        <span class="result-label">Watt Record:</span>
+                        <span class="result-value">-</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700 my-6"></div>
+
+                <!-- Input Percentuale -->
+                <div class="input-group">
+                    <label for="percentageSelectBikeerg">Seleziona una percentuale:</label>
+                    <select id="percentageSelectBikeerg" class="w-full" onchange="calculatePercentageBikeerg()" disabled>
+                         <option value="">Imposta un record...</option>
+                         <!-- Opzioni Percentuali -->
+                         <script>
+                            percentages.forEach(p => document.write(`<option value="${p}">${p}%</option>`));
+                        </script>
+                    </select>
+                </div>
+
+                <!-- Risultati Percentuale -->
+                <div id="percentage-bikeerg-results" class="space-y-2 hidden">
+                    <div id="percentage-watt-bikeerg-container" class="result-container">
+                        <span class="result-label">Watt Dispendio:</span>
+                        <span class="result-value">-</span>
+                    </div>
+                    <div id="percentage-time-bikeerg-container" class="result-container">
+                        <span class="result-label">Tempo Equivalente (4k):</span>
+                        <span class="result-value">-</span>
+                    </div>
+                    <div id="percentage-media-bikeerg-container" class="result-container">
+                         <span class="result-label">Media /1000m Dispendio:</span>
+                         <span class="result-value">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+    <div id="messageBox" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-lg p-6 shadow-lg text-center hidden z-50">
+        <p id="messageText" class="mb-6 text-lg"></p>
+        <button id="messageBoxOkBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg">OK</button>
+    </div>
+
+    <script type="module">
+        // --- ELEMENTI DOM ---
+        // RowErg Elements
+        const inputRowergRecord = document.getElementById('inputRowergRecord');
+        const setRowergRecordBtn = document.getElementById('setRowergRecordBtn');
+        const rowergRecordResults = document.getElementById('rowerg-record-results');
+        const recordMediaRowergContainer = document.getElementById('record-media-rowerg-container').querySelector('.result-value');
+        const recordWattRowergContainer = document.getElementById('record-watt-rowerg-container').querySelector('.result-value');
+        const percentageSelectRowerg = document.getElementById('percentageSelectRowerg');
+        const percentageRowergResultsContainer = document.getElementById('percentage-rowerg-results');
+        const percentageWattRowergContainer = document.getElementById('percentage-watt-rowerg-container').querySelector('.result-value');
+        const percentageTimeRowergContainer = document.getElementById('percentage-time-rowerg-container').querySelector('.result-value');
+        const percentageMediaRowergContainer = document.getElementById('percentage-media-rowerg-container').querySelector('.result-value');
+        
+        // BikeErg Elements
+        const inputBikeergRecord = document.getElementById('inputBikeergRecord');
+        const setBikeergRecordBtn = document.getElementById('setBikeergRecordBtn');
+        const bikeergRecordResults = document.getElementById('bikeerg-record-results');
+        const recordMediaBikeergContainer = document.getElementById('record-media-bikeerg-container').querySelector('.result-value');
+        const recordWattBikeergContainer = document.getElementById('record-watt-bikeerg-container').querySelector('.result-value');
+        const percentageSelectBikeerg = document.getElementById('percentageSelectBikeerg');
+        const percentageBikeergResultsContainer = document.getElementById('percentage-bikeerg-results');
+        const percentageWattBikeergContainer = document.getElementById('percentage-watt-bikeerg-container').querySelector('.result-value');
+        const percentageTimeBikeergContainer = document.getElementById('percentage-time-bikeerg-container').querySelector('.result-value');
+        const percentageMediaBikeergContainer = document.getElementById('percentage-media-bikeerg-container').querySelector('.result-value');
+
+
+        // --- FUNZIONE MASCHERA INPUT ---
+        function formatTimeInput(e) {
+            const input = e.target;
+            // Salva la posizione corrente del cursore
+            let cursorPos = input.selectionStart;
+            let originalValue = input.value;
+            let digits = input.value.replace(/\D/g, ''); // Rimuove tutti i non-numeri
+            const len = digits.length;
+            
+            // Limita a 5 cifre (mmsss)
+            if (len > 5) {
+                digits = digits.substring(0, 5);
+            }
+
+            let formattedValue = '';
+            if (len === 0) {
+                formattedValue = '';
+            } else if (len <= 2) { // Fino a "mm"
+                formattedValue = digits;
+            } else if (len <= 4) { // Fino a "mm:ss"
+                formattedValue = `${digits.substring(0, 2)}:${digits.substring(2, len)}`;
+            } else { // "mm:ss.s"
+                formattedValue = `${digits.substring(0, 2)}:${digits.substring(2, 4)}.${digits.substring(4, 5)}`;
+            }
+
+            input.value = formattedValue;
+
+            // Ripristina la posizione del cursore in modo intelligente
+            if (cursorPos !== null) {
+                // Calcola quanti caratteri non numerici sono stati aggiunti/rimossi prima del cursore
+                const oldNonDigits = (originalValue.substring(0, cursorPos).match(/\D/g) || []).length;
+                const newNonDigits = (formattedValue.substring(0, cursorPos).match(/\D/g) || []).length;
+                cursorPos = cursorPos + (newNonDigits - oldNonDigits);
+                
+                // Assicurati che il cursore non vada oltre la fine
+                if (cursorPos > formattedValue.length) {
+                    cursorPos = formattedValue.length;
+                }
+                // Se si sta cancellando un separatore, sposta il cursore indietro
+                if (originalValue.length > formattedValue.length && (originalValue[cursorPos] === ':' || originalValue[cursorPos] === '.')) {
+                     cursorPos = Math.max(0, cursorPos -1);
+                }
+
+                input.setSelectionRange(cursorPos, cursorPos);
+            }
+        }
+
+        // Aggiungi listener per la formattazione automatica
+        inputRowergRecord.addEventListener('input', formatTimeInput);
+        inputBikeergRecord.addEventListener('input', formatTimeInput);
+
+
+        // --- VARIABILI GLOBALI ---
+        let baseWattsRowerg = 0;
+        let baseWattsBikeerg = 0;
+
+        // --- FUNZIONI DI UTILITÀ ---
+        function showModal(modal) { document.getElementById('modal-backdrop').classList.remove('hidden'); modal.classList.remove('hidden'); }
+        function hideModal(modal) { document.getElementById('modal-backdrop').classList.add('hidden'); modal.classList.add('hidden'); }
+        function showMessageBox(message) {
+            document.getElementById('messageText').textContent = message;
+            showModal(document.getElementById('messageBox'));
+        }
+        document.getElementById('messageBoxOkBtn').addEventListener('click', () => hideModal(document.getElementById('messageBox')));
+
+        function convertTimeToSeconds(timeString) {
+            if (!timeString || typeof timeString !== 'string') return 0;
+            timeString = timeString.replace(',', '.');
+            
+            // Accetta sia 'mm:ss.s' che 'mm:ss'
+            if (!timeString.includes(':')) {
+                 console.warn(`Formato tempo non valido (manca :): ${timeString}`);
+                return 0;
+            }
+            
+            const parts = timeString.split(':');
+            if (parts.length !== 2) {
+                 console.warn(`Formato tempo non valido (parti non valide): ${timeString}`);
+                return 0;
+            }
+            
+            const minutes = parseInt(parts[0], 10);
+            const seconds = parseFloat(parts[1]);
+            
+            if (isNaN(minutes) || isNaN(seconds) || minutes < 0 || seconds < 0 || seconds >= 60) {
+                console.warn(`Formato tempo non valido (valori non validi): ${timeString}`);
+                return 0;
+            }
+            return (minutes * 60) + seconds;
+        }
+
+        // --- FORMULE ---
+        // Formula standard Concept2 per i Watt (RowErg)
+        function calculateWattsRowerg(totalSeconds, distance) {
+            if (totalSeconds <= 0 || distance <= 0) return 0;
+            // W = 2.8 * (dist / t)^3
+            return 2.8 * Math.pow(distance / totalSeconds, 3);
+        }
+
+        // Formula Concept2 per i Watt (BikeErg)
+        function calculateWattsBikeerg(totalSeconds, distance) {
+            if (totalSeconds <= 0 || distance <= 0) return 0;
+            const numSegments = 4; // Assumiamo 4 segmenti (es. 4000m / 1000m)
+            const t_1000 = totalSeconds / numSegments;
+            if (t_1000 <= 0) return 0;
+            // Calcola i watt usando la media /1000m come se fosse una media /500m
+            return 2.8 * Math.pow(500 / t_1000, 3);
+        }
+
+        // Formula inversa: calcola il tempo dai Watt (RowErg)
+        function calculateTimeFromWattsRowerg(watts, distance) {
+            if (watts <= 0 || distance <= 0) return 0;
+            // t = dist / (W / 2.8)^(1/3)
+            return distance / Math.pow(watts / 2.8, 1/3);
+        }
+
+        // Formula inversa: calcola il tempo dai Watt (BikeErg)
+        function calculateTimeFromWattsBikeerg(watts, distance) {
+            if (watts <= 0 || distance <= 0) return 0; 
+            const t_1000 = 500 / Math.pow(watts / 2.8, 1/3);
+            const numSegments = 4; // Assumiamo 4 segmenti (es. 4000m / 1000m)
+            return t_1000 * numSegments;
+        }
+
+        // Calcola la media su 1/4 della distanza (500m per 2k, 1000m per 4k)
+        function calculateAverageSegmentTime(totalSeconds) {
+             if (totalSeconds <= 0) return 0;
+             return totalSeconds / 4;
+        }
+
+        function formatSecondsToTime(totalSeconds) {
+            if (totalSeconds <= 0 || !isFinite(totalSeconds)) return "N/D";
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            // Formatta i secondi a una cifra decimale, es: "05.3"
+            const formattedSeconds = seconds.toFixed(1).padStart(4, '0'); 
+            return `${minutes}:${formattedSeconds}`;
+        }
+
+        // --- EVENT LISTENER PER IMPOSTARE I RECORD ---
+
+        setRowergRecordBtn.addEventListener('click', () => {
+            const timeValue = inputRowergRecord.value;
+            // Completa il tempo se manca il decimale
+            const fullTimeValue = timeValue.includes('.') ? timeValue : (timeValue.length === 5 ? `${timeValue}.0` : timeValue);
+            const recordRowergSeconds = convertTimeToSeconds(fullTimeValue);
+
+            if (recordRowergSeconds > 0) {
+                baseWattsRowerg = calculateWattsRowerg(recordRowergSeconds, 2000);
+                const avg500mSeconds = calculateAverageSegmentTime(recordRowergSeconds);
+
+                recordMediaRowergContainer.textContent = formatSecondsToTime(avg500mSeconds);
+                recordWattRowergContainer.textContent = baseWattsRowerg.toFixed(2);
+                rowergRecordResults.classList.remove('hidden');
+                
+                percentageSelectRowerg.disabled = false;
+                percentageSelectRowerg.value = ""; // Resetta il dropdown
+                percentageRowergResultsContainer.classList.add('hidden'); // Nascondi risultati vecchi
+                percentageSelectRowerg.querySelector('option[value=""]').textContent = "Seleziona...";
+            } else {
+                showMessageBox("Formato tempo non valido. Usa 'mm:ss.s' (es. 6:45.3)");
+                baseWattsRowerg = 0;
+                rowergRecordResults.classList.add('hidden');
+                percentageSelectRowerg.disabled = true;
+                percentageSelectRowerg.value = "";
+                percentageRowergResultsContainer.classList.add('hidden');
+                percentageSelectRowerg.querySelector('option[value=""]').textContent = "Imposta un record...";
+            }
+        });
+
+        setBikeergRecordBtn.addEventListener('click', () => {
+            const timeValue = inputBikeergRecord.value;
+            // Completa il tempo se manca il decimale
+            const fullTimeValue = timeValue.includes('.') ? timeValue : (timeValue.length === 5 ? `${timeValue}.0` : timeValue);
+            const recordBikeergSeconds = convertTimeToSeconds(fullTimeValue);
+
+            if (recordBikeergSeconds > 0) {
+                baseWattsBikeerg = calculateWattsBikeerg(recordBikeergSeconds, 4000);
+                const avg1000mSeconds = calculateAverageSegmentTime(recordBikeergSeconds);
+
+                recordMediaBikeergContainer.textContent = formatSecondsToTime(avg1000mSeconds);
+                recordWattBikeergContainer.textContent = baseWattsBikeerg.toFixed(2);
+                bikeergRecordResults.classList.remove('hidden');
+
+                percentageSelectBikeerg.disabled = false;
+                percentageSelectBikeerg.value = ""; // Resetta il dropdown
+                percentageBikeergResultsContainer.classList.add('hidden'); // Nascondi risultati vecchi
+                percentageSelectBikeerg.querySelector('option[value=""]').textContent = "Seleziona...";
+            } else {
+                showMessageBox("Formato tempo non valido. Usa 'mm:ss.s' (es. 5:10.7)");
+                baseWattsBikeerg = 0;
+                bikeergRecordResults.classList.add('hidden');
+                percentageSelectBikeerg.disabled = true;
+                percentageSelectBikeerg.value = "";
+                percentageBikeergResultsContainer.classList.add('hidden');
+                percentageSelectBikeerg.querySelector('option[value=""]').textContent = "Imposta un record...";
+            }
+        });
+
+
+        // --- FUNZIONI DI CALCOLO PERCENTUALE ---
+        window.calculatePercentageRowerg = function() {
+            const selectedPercentageValue = percentageSelectRowerg.value;
+            if (!selectedPercentageValue || baseWattsRowerg <= 0) {
+                percentageRowergResultsContainer.classList.add('hidden');
+                return;
+            }
+
+            const percentage = parseFloat(selectedPercentageValue) / 100;
+            const finalWatts = baseWattsRowerg * percentage;
+            const finalTimeInSeconds = calculateTimeFromWattsRowerg(finalWatts, 2000); // Distanza 2000
+            const finalAvg500mSeconds = calculateAverageSegmentTime(finalTimeInSeconds);
+
+            percentageWattRowergContainer.textContent = finalWatts.toFixed(2);
+            percentageTimeRowergContainer.textContent = formatSecondsToTime(finalTimeInSeconds);
+            percentageMediaRowergContainer.textContent = formatSecondsToTime(finalAvg500mSeconds);
+            percentageRowergResultsContainer.classList.remove('hidden');
+        }
+
+         window.calculatePercentageBikeerg = function() {
+            const selectedPercentageValue = percentageSelectBikeerg.value;
+            // Usa solo i watt di base del BikeErg
+            const baseWattsToUse = baseWattsBikeerg;
+
+            if (!selectedPercentageValue || baseWattsToUse <= 0) {
+                percentageBikeergResultsContainer.classList.add('hidden');
+                return;
+            }
+
+            const percentage = parseFloat(selectedPercentageValue) / 100;
+            const finalWatts = baseWattsToUse * percentage;
+            
+            // Usa 4000m per calcolare il tempo equivalente della BikeErg
+            const finalTimeInSeconds = calculateTimeFromWattsBikeerg(finalWatts, 4000);
+            // Calcola media su 1000m
+            const finalAvg1000mSeconds = calculateAverageSegmentTime(finalTimeInSeconds); 
+
+            percentageWattBikeergContainer.textContent = finalWatts.toFixed(2);
+            percentageTimeBikeergContainer.textContent = formatSecondsToTime(finalTimeInSeconds);
+            percentageMediaBikeergContainer.textContent = formatSecondsToTime(finalAvg1000mSeconds);
+            percentageBikeergResultsContainer.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
+
+
