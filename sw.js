@@ -2,25 +2,22 @@
 // Questo file gestisce la cache e l'aggiornamento della PWA.
 
 // 1. Definiamo il nome e la versione della nostra cache.
-// IMPORTANTE: Quando aggiorni l'app, devi cambiare questo nome (es. 'v2', 'v3').
-const CACHE_NAME = 'fic-coach-cache-v1.5';
+// IMPORTANTE: Versione aggiornata a 'v2' per forzare l'aggiornamento
+const CACHE_NAME = 'fic-coach-cache-v2';
 
 // 2. Elenco dei file fondamentali da salvare in cache.
+// CORREZIONE: Rimossi i file ranking_...html inesistenti e corretti i nomi delle icone
 const urlsToCache = [
   '/',
   'index.html',
   'manifest.json',
   'logo.png',
-  'COACH R4P (192).png', // <-- CORRETTO
-  'COACH R4P (512).png', // <-- CORRETTO
+  'COACH R4P (192).png', // Corretto per combaciare con manifest.json
+  'COACH R4P (512).png', // Corretto per combaciare con manifest.json
   'CALENDARIO/calendario.html',
   'CONVOCAZIONI/convocazioni.html',
   'DISPENDIO/dispendi.html',
-  'RANKING/home_ranking.html',
-  'RANKING/ranking_bike.html',
-  'RANKING/ranking_boat.html',
-  'RANKING/ranking_ergo.html'
-  // Aggiungi qui altri file/immagini importanti se necessario
+  'RANKING/home_ranking.html'
 ];
 
 // 3. Evento 'install': si attiva quando il Service Worker viene installato.
@@ -30,14 +27,16 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Cache aperta');
+        // Usiamo addAll. Se ANCHE SOLO UN file fallisce, l'installazione si blocca.
         return cache.addAll(urlsToCache);
+      })
+      .catch(err => {
+        console.error('Impossibile aggiungere i file alla cache:', err);
       })
   );
 });
 
-// 4. Evento 'fetch': si attiva ogni volta che l'app chiede un file (es. un'immagine, un .html).
-// Questo codice controlla prima la cache. Se il file c'è, lo restituisce dalla cache (velocissimo, funziona offline).
-// Se non c'è, lo chiede alla rete.
+// 4. Evento 'fetch': si attiva ogni volta che l'app chiede un file.
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
@@ -57,13 +56,14 @@ self.addEventListener('fetch', event => {
 // Questo è FONDAMENTALE per gli aggiornamenti.
 // Cancella tutte le vecchie cache che non corrispondono al nuovo CACHE_NAME.
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
+  const cacheWhitelist = [CACHE_NAME]; // Mantiene solo la cache v2
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // Se la cache non è nella "lista bianca" (cioè è vecchia), la cancelliamo.
+            // Se la cache non è nella "lista bianca" (cioè è vecchia, es. v1), la cancelliamo.
+            console.log('Cancellazione vecchia cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
