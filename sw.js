@@ -3,7 +3,7 @@
 
 // 1. Definiamo il nome e la versione della nostra cache.
 // IMPORTANTE: Quando aggiorni l'app, devi cambiare questo nome (es. 'v2', 'v3').
-const CACHE_NAME = 'fic-coach-cache-v1.4';
+const CACHE_NAME = 'fic-coach-cache-v1.5';
 
 // 2. Elenco dei file fondamentali da salvare in cache.
 const urlsToCache = [
