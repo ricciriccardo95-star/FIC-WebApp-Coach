@@ -3,7 +3,7 @@
 
 // 1. Definiamo il nome e la versione della nostra cache.
 // IMPORTANTE: Versione aggiornata a 'v2' per forzare l'aggiornamento
-const CACHE_NAME = 'fic-coach-cache-v2';
+const CACHE_NAME = 'fic-coach-cache-v2.1';
 
 // 2. Elenco dei file fondamentali da salvare in cache.
 // CORREZIONE: Rimossi i file ranking_...html inesistenti e corretti i nomi delle icone
