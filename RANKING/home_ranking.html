@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/heroicons"></script>
+    
     <style>
         /* Stili di base */
         body { 
@@ -124,7 +125,7 @@
         .rotate-180 { transform: rotate(180deg); }
     </style>
 </head>
-<body class="antialiased">
+<body class="antialiased" style="visibility: hidden;">
     <div class="background-gradient gradient-1"></div>
     <div class="background-gradient gradient-2"></div>
 
@@ -135,8 +136,7 @@
 
     <div id="app-view" class="pt-4 pb-4 md:p-10 max-w-screen-2xl mx-auto relative z-10 hidden">
         
-        <!-- Tasto Home -->
-        <a href="../index.html" class="absolute top-4 left-4 md:top-6 md:left-6 inline-flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg shadow transition-colors text-sm">
+        <a href="../coach_home.html" class="absolute top-4 left-4 md:top-6 md:left-6 inline-flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg shadow transition-colors text-sm">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M12 19l-7-7 7-7"/><path d="M19 12H5"/></svg>
             Home
         </a>
@@ -145,10 +145,8 @@
             Ranking
         </h1>
         
-        <!-- === SELETTORI RANKING (NUOVA VERSIONE) === -->
         <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl shadow-2xl p-6 mb-8 flex flex-col md:flex-row justify-center items-center gap-6 mx-4 md:mx-0">
             
-            <!-- Bottone Totale -->
             <div class="text-center">
                 <button id="loadTotalBtn" class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-blue-500/50 text-lg">
                     Ranking Totale
@@ -158,7 +156,6 @@
                 </p>
             </div>
             
-            <!-- Bottone Mese Corrente -->
             <div class="text-center">
                 <button id="loadMonthlyBtn" class="bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-teal-500/50 text-lg">
                     Ranking Mese Corrente
@@ -168,9 +165,6 @@
                 </p>
             </div>
         </div>
-        <!-- === FINE SELETTORI === -->
-
-        <!-- === FILTRI === -->
         <div id="filter-controls" class="bg-slate-900/80 border border-slate-700/60 rounded-xl shadow-xl p-4 mb-8 flex flex-col md:flex-row justify-center items-center gap-4 mx-4 md:mx-0 hidden">
             <div class_="w-full md:w-1/3">
                 <label for="filterGenere" class="text-slate-400 font-semibold mb-1 block text-sm">Filtra per Genere</label>
@@ -192,33 +186,34 @@
                 </select>
             </div>
         </div>
-        <!-- === FINE FILTRI === -->
-
-
         <div id="results-container" class="mx-4 md:mx-0">
-            <!-- La tabella verrà inserita qui --></div>
+            </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        // Importa i metodi Firestore v10 (sostituisce la v8)
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    <script>
         const firebaseConfig = {
-            // TUA CONFIGURAZIONE FIREBASE
             apiKey: "AIzaSyAQ_0F8KCks_4Wn2h2aTIepQY9VrIkWpUQ", authDomain: "database-atleti-fic.firebaseapp.com",
             databaseURL: "https://database-atleti-fic-default-rtdb.firebaseio.com", projectId: "database-atleti-fic",
             storageBucket: "database-atleti-fic.firebasestorage.app", messagingSenderId: "860422140545",
             appId: "1:860422140545:web:cd14c042a47f2650681380"
         };
-        firebase.initializeApp(firebaseConfig);
-        const firestore = firebase.firestore();
+        
+        // Inizializza UNA SOLA VOLTA
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app); // 'db' invece di 'firestore' (v10)
 
         // Riferimenti DOM
         const loaderOverlay = document.getElementById('loader-overlay');
         const loaderText = document.getElementById('loader-text');
         const resultsContainer = document.getElementById('results-container');
         const loadMonthlyBtn = document.getElementById('loadMonthlyBtn');
-        const loadTotalBtn = document.getElementById('loadTotalBtn'); // NUOVO
+        const loadTotalBtn = document.getElementById('loadTotalBtn');
         const appView = document.getElementById('app-view');
         
         // Riferimenti Filtri
@@ -228,6 +223,48 @@
 
         // Variabile globale per memorizzare i dati scaricati
         let allAthletesData = [];
+        
+        // === AUTH GUARD INTEGRATO ===
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Utente loggato, mostra la pagina e carica i dati
+                document.body.style.visibility = 'visible';
+                appView.classList.remove('hidden');
+                
+                // Imposta i listener *prima* di caricare i dati
+                setupListeners();
+                
+                // Carica i dati iniziali
+                await loadTotalData();
+            } else {
+                // Utente NON loggato, reindirizza al login
+                window.location.replace('../index.html');
+            }
+        });
+        
+        // Funzione per impostare i listener (chiamata solo se l'utente è loggato)
+        function setupListeners() {
+             loadTotalBtn.addEventListener('click', loadTotalData);
+            loadMonthlyBtn.addEventListener('click', loadMonthlyData);
+            
+            filterGenere.addEventListener('change', applyFiltersAndRender);
+            filterGruppo.addEventListener('change', applyFiltersAndRender);
+            
+            // Aggiungi i listener per i click sulla tabella (event delegation)
+            resultsContainer.addEventListener('click', (event) => {
+                const rowSummary = event.target.closest('.mobile-row-summary');
+                if (rowSummary) {
+                    const athleteId = rowSummary.dataset.athleteId;
+                    const detailsDiv = document.getElementById(`details-${athleteId}`);
+                    const arrowIcon = rowSummary.querySelector('.mobile-arrow-icon');
+                    
+                    if (detailsDiv && arrowIcon) {
+                        detailsDiv.classList.toggle('active');
+                        arrowIcon.classList.toggle('rotate-180');
+                    }
+                }
+            });
+        }
 
         // --- FUNZIONI HELPER ---
         function getCurrentMonthString() {
@@ -237,7 +274,6 @@
             return `${year}-${month}`;
         }
         
-        // --- FUNZIONE PER I BADGE (GRUPPO) ---
         function getGruppoBadge(value) {
             if (!value) return '<span class="badge bg-slate-600 text-slate-200" title="Non Definito">N/D</span>';
             let bgColor = 'bg-slate-600', textColor = 'text-slate-200', abbrev = 'N/D';
@@ -251,14 +287,11 @@
             return `<span class="badge ${bgColor} ${textColor}" title="${value}">${abbrev}</span>`;
         }
 
-        // --- FUNZIONE BADGE (GENERE) ---
         function getGenereBadge(value) {
             if (!value) return '<span class="badge bg-slate-600 text-slate-200" title="Non Definito">N/D</span>';
             let bgColor = 'bg-slate-600', textColor = 'text-slate-200', text = value;
-            
             if (value === 'M') { bgColor = 'bg-blue-500'; textColor = 'text-white'; } 
             else if (value === 'F') { bgColor = 'bg-pink-500'; textColor = 'text-white'; }
-            
             return `<span class="badge ${bgColor} ${textColor}" title="${value}">${text}</span>`;
         }
 
@@ -266,40 +299,34 @@
         function applyFiltersAndRender() {
             const selectedGenere = filterGenere.value;
             const selectedGruppo = filterGruppo.value;
-
-            // Filtra i dati
             let filteredAthletes = allAthletesData;
-
             if (selectedGenere) {
                 filteredAthletes = filteredAthletes.filter(athlete => athlete.genere === selectedGenere);
             }
-
             if (selectedGruppo) {
                 filteredAthletes = filteredAthletes.filter(athlete => athlete.gruppo === selectedGruppo);
             }
-
-            // Chiama la funzione di render con i dati filtrati
             renderRanking(filteredAthletes);
         }
 
-
-        // --- NUOVA FUNZIONE - Carica Dati TOTALI ---
+        // --- FUNZIONE - Carica Dati TOTALI (sintassi v10) ---
         async function loadTotalData() {
             loaderText.textContent = 'Caricamento ranking totale...';
             loaderOverlay.style.display = 'flex';
             resultsContainer.innerHTML = '';
-            filterControls.classList.add('hidden'); // Nasconde i filtri
-            allAthletesData = []; // Resetta i dati
+            filterControls.classList.add('hidden');
+            allAthletesData = [];
 
             try {
-                const docRef = firestore.doc(`rankingTotale/overall`);
-                const doc = await docRef.get(); // <-- 1 LETTURA
+                // Sintassi v10
+                const docRef = doc(db, `rankingTotale/overall`);
+                const docSnap = await getDoc(docRef); // 'docSnap' invece di 'doc'
 
-                if (doc.exists) {
-                    const data = doc.data();
-                    allAthletesData = data.ranking || []; // Salva i dati nella variabile globale
-                    applyFiltersAndRender(); // Filtra e renderizza
-                    filterControls.classList.remove('hidden'); // Mostra i filtri
+                if (docSnap.exists()) { // 'docSnap.exists()'
+                    const data = docSnap.data(); // 'docSnap.data()'
+                    allAthletesData = data.ranking || [];
+                    applyFiltersAndRender();
+                    filterControls.classList.remove('hidden');
                 } else {
                     resultsContainer.innerHTML = `<p class="text-center text-yellow-400 p-8 text-xl font-medium">Documento ranking totale non ancora disponibile.<br/>(Viene generato ogni notte alle 03:00)</p>`;
                 }
@@ -311,26 +338,25 @@
             }
         }
         
-        // --- FUNZIONE (MODIFICATA) - Carica Dati MENSILI ---
+        // --- FUNZIONE - Carica Dati MENSILI (sintassi v10) ---
         async function loadMonthlyData() {
             loaderText.textContent = 'Caricamento ranking del mese...';
             loaderOverlay.style.display = 'flex';
             resultsContainer.innerHTML = '';
-            filterControls.classList.add('hidden'); // Nasconde i filtri
-            allAthletesData = []; // Resetta i dati
-
-            // Calcola automaticamente il mese corrente
+            filterControls.classList.add('hidden');
+            allAthletesData = [];
             const monthId = getCurrentMonthString(); 
             
             try {
-                const docRef = firestore.doc(`riepiloghiMensili/${monthId}`);
-                const doc = await docRef.get(); // <-- 1 LETTURA
+                // Sintassi v10
+                const docRef = doc(db, `riepiloghiMensili/${monthId}`);
+                const docSnap = await getDoc(docRef);
 
-                if (doc.exists) {
-                    const data = doc.data();
-                    allAthletesData = data.ranking || []; // Salva i dati nella variabile globale
-                    applyFiltersAndRender(); // Filtra e renderizza
-                    filterControls.classList.remove('hidden'); // Mostra i filtri
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    allAthletesData = data.ranking || [];
+                    applyFiltersAndRender();
+                    filterControls.classList.remove('hidden');
                 } else {
                     resultsContainer.innerHTML = `<p class="text-center text-yellow-400 p-8 text-xl font-medium">Riepilogo mensile per ${monthId} non ancora disponibile.<br/>(Viene generato ogni notte alle 02:00)</p>`;
                 }
@@ -342,11 +368,9 @@
             }
         }
 
-
-        // --- FUNZIONE DI RENDER (INVARIATA) ---
+        // --- FUNZIONE DI RENDER (INVARIATA, tranne per listener) ---
         function renderRanking(rankedAthletes) {
             if (!rankedAthletes || rankedAthletes.length === 0) {
-                // Modifica messaggio se i dati master ci sono ma i filtri non danno risultati
                 if (allAthletesData.length > 0) {
                     resultsContainer.innerHTML = `<p class="text-center text-slate-400 p-8 text-xl">Nessun atleta trovato con i filtri selezionati.</p>`;
                 } else {
@@ -357,6 +381,8 @@
 
             const table = document.createElement('table');
             table.className = "w-full text-white md:rounded-xl md:overflow-hidden md:bg-slate-900/80 md:border md:border-slate-700/60 md:shadow-2xl"; 
+            
+            // ... (tutto il blocco table.innerHTML rimane ESATTAMENTE LO STESSO) ...
             table.innerHTML = `
                 <thead class="hidden md:table-header-group">
                     <tr>
@@ -364,25 +390,21 @@
                         <th scope="col">Atleta</th>
                         <th scope="col">Gruppo</th>
                         <th scope="col">Genere</th> 
-                        
                         <th scope="col" class="text-right">Barca (Metri)</th>
                         <th scope="col" class="text-right ep-col-min">EP Barca</th>
                         <th scope="col" class="text-right">Ergo (Metri)</th>
                         <th scope="col" class="text-right ep-col-min">EP Ergo</th>
                         <th scope="col" class="text-right">Bike (Metri)</th>
                         <th scope="col" class="text-right ep-col-min">EP Bike</th>
-
                         <th scope="col" class="text-right ep-col-min">Vol Barca</th>
                         <th scope="col" class="text-right ep-col-min">Vol Ergo</th>
                         <th scope="col" class="text-right ep-col-min">Vol Bike</th>
-
                         <th scope="col" class="text-right">Punteggio Tot.</th>
                     </tr>
                 </thead>
                 <tbody class="block md:table-row-group">
                     ${rankedAthletes.map((athlete, index) => {
                         const relativeRank = index + 1;
-                        
                         let rankClass = '';
                         if (index === 0) rankClass = 'rank-1';
                         if (index === 1) rankClass = 'rank-2';
@@ -404,7 +426,6 @@
 
                         return `
                         <tr id="athlete-row-${athlete.id || index}" class="block md:table-row">
-                            <!-- DESKTOP VIEW -->
                             <td data-label="#" class="hidden md:table-cell text-center font-bold text-xl rank-cell ${rankClass}">${relativeRank}</td>
                             <td data-label="Atleta" class="hidden md:table-cell font-bold text-lg athlete-cell">${athlete.name}</td>
                             <td data-label="Gruppo" class="hidden md:table-cell">${gruppoBadge}</td>
@@ -420,7 +441,6 @@
                             <td data-label="Vol Bike" class="hidden md:table-cell text-right ep-col-min vol-value">${formatScore(athlete.volBike)}%</td>
                             <td data-label="Punteggio Tot." class="hidden md:table-cell text-right font-extrabold text-xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-300">${formatScore(athlete.score)}</td>
 
-                            <!-- MOBILE VIEW -->
                             <td colspan="14" class="md:hidden p-0 border-b-0">
                                 <div class="mobile-row-summary" data-athlete-id="${athlete.id || index}">
                                     <div class="mobile-main-info">
@@ -460,40 +480,16 @@
                     }).join('')}
                 </tbody>
             `;
+
             resultsContainer.innerHTML = '';
             resultsContainer.appendChild(table);
 
-            // Aggiungi event listeners per i dettagli mobile
-            document.querySelectorAll('.mobile-row-summary').forEach(row => {
-                row.addEventListener('click', (event) => {
-                    const athleteId = row.dataset.athleteId;
-                    const detailsDiv = document.getElementById(`details-${athleteId}`);
-                    const arrowIcon = row.querySelector('.mobile-arrow-icon');
-                    
-                    if (detailsDiv && arrowIcon) {
-                        detailsDiv.classList.toggle('active');
-                        arrowIcon.classList.toggle('rotate-180');
-                    }
-                });
-            });
+            // RIMOSSO: I listener ora sono gestiti a livello globale
         }
 
-        // --- GESTIONE AVVIO PAGINA (MODIFICATO) ---
-        document.addEventListener('DOMContentLoaded', async () => { 
-            loaderText.textContent = 'Caricamento...';
-            appView.classList.remove('hidden');
-            
-            // Collega i bottoni alle rispettIVE funzioni
-            loadTotalBtn.addEventListener('click', loadTotalData);
-            loadMonthlyBtn.addEventListener('click', loadMonthlyData);
-            
-            // LISTENER PER I FILTRI
-            filterGenere.addEventListener('change', applyFiltersAndRender);
-            filterGruppo.addEventListener('change', applyFiltersAndRender);
+        // RIMOSSO: Il 'DOMContentLoaded' listener è stato sostituito
+        // dall'avvio tramite 'onAuthStateChanged'
 
-            // Carica automaticamente il ranking TOTALE all'avvio
-            await loadTotalData(); 
-        });
     </script>
 </body>
 </html>
