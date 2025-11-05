@@ -2,18 +2,19 @@
 // Questo file gestisce la cache e l'aggiornamento della PWA.
 
 // 1. Definiamo il nome e la versione della nostra cache.
-// IMPORTANTE: Versione aggiornata a 'v2' per forzare l'aggiornamento
-const CACHE_NAME = 'fic-coach-cache-v2.1';
+// IMPORTANTE: Versione aggiornata a 'v4' per forzare l'aggiornamento
+const CACHE_NAME = 'fic-coach-cache-v4';
 
 // 2. Elenco dei file fondamentali da salvare in cache.
-// CORREZIONE: Rimossi i file ranking_...html inesistenti e corretti i nomi delle icone
+// CORREZIONE: Aggiornati percorsi immagini e aggiunte pagine login/home
 const urlsToCache = [
   '/',
-  'index.html',
+  'coach_login.html',
+  'coach_home.html',
   'manifest.json',
   'logo.png',
-  'COACH R4P (192).png', // Corretto per combaciare con manifest.json
-  'COACH R4P (512).png', // Corretto per combaciare con manifest.json
+  'images/COACH R4P (192).png',
+  'images/COACH R4P (512).png',
   'CALENDARIO/calendario.html',
   'CONVOCAZIONI/convocazioni.html',
   'DISPENDIO/dispendi.html',
@@ -56,13 +57,13 @@ self.addEventListener('fetch', event => {
 // Questo è FONDAMENTALE per gli aggiornamenti.
 // Cancella tutte le vecchie cache che non corrispondono al nuovo CACHE_NAME.
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME]; // Mantiene solo la cache v2
+  const cacheWhitelist = [CACHE_NAME]; // Mantiene solo la cache v4
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // Se la cache non è nella "lista bianca" (cioè è vecchia, es. v1), la cancelliamo.
+            // Se la cache non è nella "lista bianca" (cioè è vecchia, es. v1, v2, v3), la cancelliamo.
             console.log('Cancellazione vecchia cache:', cacheName);
             return caches.delete(cacheName);
           }
