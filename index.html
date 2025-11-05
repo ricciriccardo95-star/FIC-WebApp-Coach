@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Titolo aggiornato per i Coach -->
     <title>FIC Coach - Accesso</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,7 +38,6 @@
         #logo-container { transition: transform 1s ease-in-out; }
         #login-form-container { transition: opacity 1s ease-in; }
     </style>
-    <!-- Link PWA (presi dal tuo manifest.json) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FIC Coach">
@@ -48,17 +46,13 @@
 </head>
 <body class="antialiased">
 
-    <!-- Sfondi animati -->
     <div class="background-gradient gradient-1"></div>
     <div class="background-gradient gradient-2"></div>
 
-    <!-- Vista di Login -->
     <div id="login-view" class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm">
             <div id="logo-container" class="text-center transform translate-y-0">
-                <!-- LOGO AGGIORNATO: Utilizza il logo R4P (Coach) -->
                 <img src="images/logo.png" alt="Logo FIC Coach" class="mx-auto mb-4 w-48 h-auto rounded-3xl">
-                <!-- Titolo App Aggiornato -->
                 <h1 id="app-title" class="text-2xl sm:text-3xl font-black text-slate-100 tracking-tight opacity-0 transition-opacity duration-1000">
                     FIC COACH
                 </h1>
@@ -92,10 +86,17 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (usiamo lo stesso progetto 'database-atleti-fic') -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        // *** MODIFICA: Importa setPersistence e browserLocalPersistence ***
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            onAuthStateChanged, 
+            signOut, 
+            setPersistence, 
+            browserLocalPersistence 
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Configurazione del progetto 'database-atleti-fic' (dove vivono gli 'allenatori')
@@ -118,23 +119,42 @@
         const errorMessage = document.getElementById('error-message');
 
         // --- GESTIONE DELLO STATO DI AUTENTICAZIONE ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // Utente loggato, ORA controlliamo se è un allenatore
-                const isCoach = await checkCoachRole(user.uid);
-                if (isCoach) {
-                    // È un allenatore, reindirizza alla home dei coach
-                    window.location.href = 'coach_home.html';
+
+        // *** NUOVO: Imposta la persistenza a 'local' PRIMA di controllare l'auth ***
+        // Questo dice a Firebase di salvare l'utente anche dopo la chiusura del browser.
+        setPersistence(auth, browserLocalPersistence)
+            .then(() => {
+                // Persistenza impostata, ora attiva il listener
+                initializeAuthListener();
+            })
+            .catch((error) => {
+                console.error("Errore impostazione persistenza: ", error);
+                // Prova comunque ad avviare
+                initializeAuthListener();
+            });
+
+        // *** MODIFICA: Messo il listener in una funzione per chiamarlo dopo setPersistence ***
+        function initializeAuthListener() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    // Utente loggato, ORA controlliamo se è un allenatore
+                    const isCoach = await checkCoachRole(user.uid);
+                    if (isCoach) {
+                        // È un allenatore, reindirizza alla home dei coach
+                        window.location.href = 'coach_home.html';
+                    } else {
+                        // Non è un allenatore (o errore), esegui il logout
+                        await signOut(auth);
+                        showError("Accesso non autorizzato. Questa email non appartiene a un allenatore.");
+                        // Mostra comunque il form in caso di errore
+                        startLoginAnimation();
+                    }
                 } else {
-                    // Non è un allenatore (o errore), esegui il logout
-                    await signOut(auth);
-                    showError("Accesso non autorizzato. Questa email non appartiene a un allenatore.");
+                    // Utente non loggato, mostra l'animazione di login
+                    startLoginAnimation();
                 }
-            } else {
-                // Utente non loggato, mostra l'animazione di login
-                startLoginAnimation();
-            }
-        });
+            });
+        }
 
         // --- FUNZIONE DI CONTROLLO RUOLO ---
         async function checkCoachRole(uid) {
