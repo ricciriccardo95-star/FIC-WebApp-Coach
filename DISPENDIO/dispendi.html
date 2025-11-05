@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display.swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
         body {
@@ -153,7 +153,8 @@
                 <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                     <div class="sm:col-span-2">
                         <label for="inputRowergRecord">Record RowErg (2000m)</label>
-                        <input type="tel" id="inputRowergRecord" placeholder="mm:ss.s" class="input-field" inputmode="decimal" maxlength="7">
+                        <!-- MODIFICA: inputmode="numeric" -->
+                        <input type="tel" id="inputRowergRecord" placeholder="mm:ss.s" class="input-field" inputmode="numeric" maxlength="7">
                     </div>
                     <button id="setRowergRecordBtn" class="btn">Imposta</button>
                 </div>
@@ -204,7 +205,8 @@
                 <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                     <div class="sm:col-span-2">
                         <label for="inputBikeergRecord">Record BikeErg (4000m)</label>
-                        <input type="tel" id="inputBikeergRecord" placeholder="mm:ss.s" class="input-field" inputmode="decimal" maxlength="7">
+                        <!-- MODIFICA: inputmode="numeric" -->
+                        <input type="tel" id="inputBikeergRecord" placeholder="mm:ss.s" class="input-field" inputmode="numeric" maxlength="7">
                     </div>
                     <button id="setBikeergRecordBtn" class="btn">Imposta</button>
                 </div>
@@ -391,6 +393,7 @@
             const input = e.target;
             let cursorPos = input.selectionStart;
             let originalValue = input.value;
+            // Modifica: Rimuove solo ciò che NON è una cifra (0-9)
             let digits = input.value.replace(/\D/g, '');
             const len = digits.length;
             
@@ -402,15 +405,24 @@
             if (len === 0) {
                 formattedValue = '';
             } else if (len <= 2) {
+                // Permette all'utente di digitare i minuti
+                // Se digita "6", rimane "6". Se digita "06", rimane "06"
                 formattedValue = digits;
             } else if (len <= 4) {
+                // Appena l'utente digita la terza cifra, aggiunge i due punti
+                // es. "064" -> "06:4"
+                // es. "0645" -> "06:45"
                 formattedValue = `${digits.substring(0, 2)}:${digits.substring(2, len)}`;
             } else {
+                // Appena l'utente digita la quinta cifra, aggiunge il punto
+                // es. "06453" -> "06:45.3"
                 formattedValue = `${digits.substring(0, 2)}:${digits.substring(2, 4)}.${digits.substring(4, 5)}`;
             }
 
             input.value = formattedValue;
 
+            // Logica per riposizionare il cursore in modo intelligente
+            // Questo è importante per non far "saltare" il cursore
             if (cursorPos !== null) {
                 const oldNonDigits = (originalValue.substring(0, cursorPos).match(/\D/g) || []).length;
                 const newNonDigits = (formattedValue.substring(0, cursorPos).match(/\D/g) || []).length;
@@ -419,6 +431,7 @@
                 if (cursorPos > formattedValue.length) {
                     cursorPos = formattedValue.length;
                 }
+                // Se l'utente preme backspace su un ":" o ".", sposta il cursore indietro di uno
                 if (originalValue.length > formattedValue.length && (originalValue[cursorPos] === ':' || originalValue[cursorPos] === '.')) {
                      cursorPos = Math.max(0, cursorPos -1);
                 }
@@ -466,20 +479,51 @@
             const numSegments = 4;
             const t_1000 = totalSeconds / numSegments;
             if (t_1000 <= 0) return 0;
-            return 2.8 * Math.pow(500 / t_1000, 3);
+            // La formula per la BikeErg si basa sulla media 1000m, che è 500m pace per 2.
+            // Ma la formula dei watt è standard C2: 2.8 * (500 / t_500)^3
+            // Quindi t_500 = t_1000 / 2
+            // 2.8 * (500 / (t_1000 / 2))^3 = 2.8 * (1000 / t_1000)^3
+            // La formula C2 ufficiale è Watt = 2,80 / (secondi/metri)^3
+            // t_1000 = secondi per 1000 metri. (secondi/metri) = t_1000 / 1000
+            // Watt = 2.8 / ( (t_1000 / 1000) ^ 3 ) = 2.8 * (1000 / t_1000) ^ 3
+            // La formula usata per il RowErg è 2.8 * (metri/secondi)^3, che è la stessa cosa.
+            // (metri/secondi) = 2000 / totalSeconds
+            // Per la bike, la "pace" è calcolata sui 1000m.
+            // La media /500m del rower è (totalSeconds / 4)
+            // La media /1000m della bike è (totalSeconds / 4)
+            // Quindi la logica è identica, basta usare la stessa formula del RowErg
+            // ma calcolandola sulla pace equivalente.
+            // Pace /500m = (totalSeconds / 4) / 2 = totalSeconds / 8
+            // Watt = 2.8 * (500 / (totalSeconds / 8))^3 = 2.8 * (4000 / totalSeconds)^3
+            // No, la formula C2 è P = 2.80 * (pace)^3 dove pace = 500/t_500
+            // Per la BikeErg, la pace è t/1000m.
+            // t_500 = t_1000 / 2
+            // pace = 500 / (t_1000 / 2) = 1000 / t_1000
+            // Watt = 2.8 * (1000 / t_1000)^3
+            // t_1000 = totalSeconds / 4 (essendo 4000m totali)
+            // Watt = 2.8 * (1000 / (totalSeconds / 4))^3 = 2.8 * (4000 / totalSeconds)^3
+            return 2.8 * Math.pow(4000 / totalSeconds, 3);
         }
         function calculateTimeFromWattsRowerg(watts, distance) {
             if (watts <= 0 || distance <= 0) return 0;
+            // Watt = 2.8 * (dist / sec)^3
+            // (Watt / 2.8)^(1/3) = dist / sec
+            // sec = dist / (Watt / 2.8)^(1/3)
             return distance / Math.pow(watts / 2.8, 1/3);
         }
         function calculateTimeFromWattsBikeerg(watts, distance) {
             if (watts <= 0 || distance <= 0) return 0; 
-            const t_1000 = 500 / Math.pow(watts / 2.8, 1/3);
-            const numSegments = 4;
-            return t_1000 * numSegments;
+            // Watt = 2.8 * (4000 / sec)^3
+            // (Watt / 2.8)^(1/3) = 4000 / sec
+            // sec = 4000 / (Watt / 2.8)^(1/3)
+            // La distanza (4000m) è già nella formula, quindi la variabile distance è ridondante ma la teniamo per coerenza
+            return distance / Math.pow(watts / 2.8, 1/3);
         }
         function calculateAverageSegmentTime(totalSeconds) {
              if (totalSeconds <= 0) return 0;
+             // Per 2000m (RowErg) è la media su 500m (2000/4)
+             // Per 4000m (BikeErg) è la media su 1000m (4000/4)
+             // La formula è la stessa: tempo totale / 4 segmenti
              return totalSeconds / 4;
         }
         function formatSecondsToTime(totalSeconds) {
@@ -517,7 +561,7 @@
             }
             const percentage = parseFloat(selectedPercentageValue) / 100;
             const finalWatts = baseWattsToUse * percentage;
-            const finalTimeInSeconds = calculateTimeFromWattsBikeerg(finalWatts, 4000);
+            const finalTimeInSeconds = calculateTimeFromWattsBikeerg(finalWatts, 4000); // Distanza 4000
             const finalAvg1000mSeconds = calculateAverageSegmentTime(finalTimeInSeconds); 
 
             percentageWattBikeergContainer.textContent = finalWatts.toFixed(2);
