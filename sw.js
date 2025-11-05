@@ -3,7 +3,7 @@
 
 // 1. Definiamo il nome e la versione della nostra cache.
 // IMPORTANTE: Versione aggiornata a 'v4' per forzare l'aggiornamento
-const CACHE_NAME = 'fic-coach-cache-v1.3';
+const CACHE_NAME = 'fic-coach-cache-v1.4';
 
 // 2. Elenco dei file fondamentali da salvare in cache.
 // CORREZIONE: Aggiornati percorsi immagini e aggiunte pagine login/home
