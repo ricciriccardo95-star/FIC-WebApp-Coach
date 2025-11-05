@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comunicazioni - FIC</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Convocazioni - FIC</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
     <style>
         /* Stili personalizzati di base */
         body {
@@ -48,49 +47,40 @@
         }
     </style>
 </head>
-<body class="antialiased">
+<body class="antialiased" style="visibility: hidden;">
 
-    <!-- Sfondo animato -->
     <div class="fixed top-0 left-0 w-full h-full -z-10">
         <div class="background-gradient gradient-1"></div>
         <div class="background-gradient gradient-2"></div>
     </div>
 
-    <!-- Barra di caricamento -->
     <div id="loader-overlay" class="fixed inset-0 bg-slate-900/80 flex flex-col justify-center items-center z-50">
         <div class="loader h-16 w-16 animate-spin rounded-full border-4 border-t-4 border-slate-600"></div>
         <p id="loader-text" class="mt-4 text-slate-300">Caricamento convocazioni...</p>
     </div>
 
-    <!-- Contenitore Principale -->
     <div class="p-4 md:p-8 max-w-7xl mx-auto">
         
-        <!-- Header -->
         <div class="flex justify-between items-center mb-12">
             <h1 class="text-4xl md:text-5xl font-black tracking-tight text-slate-100">
                 Convocazioni
             </h1>
-            <a href="../index.html" class="inline-block bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+            <a href="../coach_home.html" class="inline-block bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
                 ← Home
             </a>
         </div>
 
-        <!-- Sezione Documenti Caricati -->
         <div class="bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg p-6">
             <h2 class="text-2xl font-bold text-white mb-6 border-b border-slate-700 pb-4">Elenco Documenti</h2>
             <div id="pdf-list-container" class="space-y-4">
-                <!-- Messaggio di caricamento iniziale -->
                 <p id="loading-message" class="text-slate-400 text-center py-4">Caricamento elenco...</p>
             </div>
         </div>
 
-    </div> <!-- Fine Contenitore Principale -->
-
-    <!-- Firebase SDK (usiamo v10.12.2) -->
-    <script type="module">
+    </div> <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        // *** MODIFICA: Importato getDocs invece di onSnapshot ***
+        // *** Importa Auth ***
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Configurazione Firebase
@@ -106,15 +96,26 @@
         // Inizializzazione Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app);
+        const auth = getAuth(app); // Inizializza Auth
 
         // Variabili DOM
         const loaderOverlay = document.getElementById('loader-overlay');
         const pdfListContainer = document.getElementById('pdf-list-container');
         
+        // === AUTH GUARD INTEGRATO ===
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Utente loggato, mostra la pagina e carica i PDF
+                document.body.style.visibility = 'visible';
+                loadPDFs();
+            } else {
+                // Utente NON loggato, reindirizza al login
+                window.location.replace('../index.html');
+            }
+        });
+
         /**
-         * *** MODIFICA: Funzione aggiornata a getDocs ***
-         * Carica i documenti una sola volta (più economico)
+         * Funzione per caricare i PDF (invariata, ma ora chiamata solo da Auth Guard)
          */
         async function loadPDFs() {
             const q = query(collection(db, "convocazioni"), orderBy("createdAt", "desc"));
@@ -135,21 +136,17 @@
                     
                     const fileName = data.fileName || `${data.titolo.replace(/\s+/g, '_') || 'convocazione'}.pdf`; 
 
-                    // *** MODIFICA: Creiamo un div contenitore, non un link ***
                     const docWrapper = document.createElement('div');
                     docWrapper.className = 'group block bg-slate-800 p-4 rounded-lg transition-all duration-300 hover:bg-slate-700/60 hover:shadow-lg border border-transparent';
 
                     docWrapper.innerHTML = `
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                            <!-- Info Documento -->
                             <div class="mb-3 sm:mb-0">
                                 <p class="font-bold text-lg text-blue-300">${data.titolo}</p>
                                 <p class="text-sm text-slate-400">Pubblicato il: ${date}</p>
                             </div>
                             
-                            <!-- Gruppo Pulsanti -->
                             <div class="flex-shrink-0 flex items-center gap-3">
-                                <!-- Tasto Visualizza -->
                                 <a href="${data.url}" 
                                    target="_blank" 
                                    class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
@@ -157,7 +154,6 @@
                                     <span>Visualizza</span>
                                 </a>
                                 
-                                <!-- Tasto Scarica -->
                                 <a href="${data.url}" 
                                    download="${fileName}" 
                                    target="_blank" 
@@ -182,21 +178,14 @@
 
 
         // --- EVENT LISTENERS ---
+        // *** RIMOSSO: Il 'DOMContentLoaded' listener è stato sostituito
+        // dall'avvio tramite 'onAuthStateChanged' ***
+        /*
         document.addEventListener('DOMContentLoaded', () => {
-            // Autenticazione anonima per permesso di lettura
-            signInAnonymously(auth)
-                .then(() => {
-                    // *** MODIFICA: Chiamata la nuova funzione loadPDFs ***
-                    loadPDFs();
-                })
-                .catch((error) => {
-                    console.error("Errore accesso anonimo: ", error);
-                    pdfListContainer.innerHTML = `<p class="text-red-400 text-center py-4">Impossibile connettersi al database.</p>`;
-                    loaderOverlay.classList.add('hidden');
-                });
+             // Vecchio codice con signInAnonymously rimosso
         });
+        */
 
     </script>
 </body>
 </html>
-
