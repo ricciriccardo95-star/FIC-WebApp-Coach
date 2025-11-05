@@ -12,7 +12,7 @@ const urlsToCache = [
   'coach_login.html',
   'coach_home.html',
   'manifest.json',
-  'logo.png',
+  'images/logo.png',
   'images/COACH R4P (192).png',
   'images/COACH R4P (512).png',
   'CALENDARIO/calendario.html',
