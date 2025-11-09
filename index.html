@@ -41,8 +41,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FIC Coach">
-    <link rel="apple-touch-icon" href="images/COACH R4P (192).png">
-    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="WEB APP COACH/images/COACH R4P (192).png">
+    <link rel="manifest" href="WEB APP COACH/manifest.json">
 </head>
 <body class="antialiased">
 
@@ -74,7 +74,21 @@
                                    class="w-full bg-slate-800 border border-slate-700 rounded-md p-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none">
                         </div>
                     </div>
+                    
+                    <!-- 
+                      BLOCCO AGGIUNTO: Link per recupero password
+                    -->
+                    <div class="text-right">
+                        <a href="#" id="forgot-password-link" class="text-sm font-medium text-sky-400 hover:text-sky-300">
+                            Password dimenticata?
+                        </a>
+                    </div>
+                    <!-- 
+                      FINE BLOCCO AGGIUNTO 
+                    -->
+                    
                     <p id="error-message" class="text-red-500 text-sm text-center hidden"></p>
+                    
                     <div>
                         <button type="submit" id="login-button"
                                 class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-sky-500 transition-colors disabled:opacity-50">
@@ -88,14 +102,15 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        // *** MODIFICA: Importa setPersistence e browserLocalPersistence ***
+        // *** MODIFICA: Importa setPersistence, browserLocalPersistence e sendPasswordResetEmail ***
         import { 
             getAuth, 
             signInWithEmailAndPassword, 
             onAuthStateChanged, 
             signOut, 
             setPersistence, 
-            browserLocalPersistence 
+            browserLocalPersistence,
+            sendPasswordResetEmail  // <-- AGGIUNTO
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -117,40 +132,65 @@
         const loginForm = document.getElementById('login-form');
         const loginButton = document.getElementById('login-button');
         const errorMessage = document.getElementById('error-message');
+        
+        // --- NUOVO: Riferimento al link di recupero password ---
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+
+        // --- NUOVO: Listener per il recupero password ---
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault(); // Impedisce al link di ricaricare la pagina
+            
+            const email = loginForm.email.value;
+            if (!email) {
+                showMessage("Per favore, inserisci la tua email nel campo apposito.", 'error');
+                return;
+            }
+
+            // Disabilita i pulsanti e mostra un messaggio di caricamento
+            loginButton.disabled = true;
+            showMessage("Invio email di recupero...", 'success'); // Messaggio di stato
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showMessage("Email inviata! Controlla la tua casella di posta.", 'success');
+            
+            } catch (error) {
+                // Gestione errori
+                console.error("Errore invio email reset:", error.code, error.message);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+                    showMessage("Nessun utente trovato con questa email.", 'error');
+                } else {
+                    showMessage("Si è verificato un errore. Riprova.", 'error');
+                }
+            } finally {
+                // Riabilita il pulsante in ogni caso
+                loginButton.disabled = false;
+            }
+        });
+
 
         // --- GESTIONE DELLO STATO DI AUTENTICAZIONE ---
-
-        // *** NUOVO: Imposta la persistenza a 'local' PRIMA di controllare l'auth ***
-        // Questo dice a Firebase di salvare l'utente anche dopo la chiusura del browser.
         setPersistence(auth, browserLocalPersistence)
             .then(() => {
-                // Persistenza impostata, ora attiva il listener
                 initializeAuthListener();
             })
             .catch((error) => {
                 console.error("Errore impostazione persistenza: ", error);
-                // Prova comunque ad avviare
                 initializeAuthListener();
             });
 
-        // *** MODIFICA: Messo il listener in una funzione per chiamarlo dopo setPersistence ***
         function initializeAuthListener() {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // Utente loggato, ORA controlliamo se è un allenatore
                     const isCoach = await checkCoachRole(user.uid);
                     if (isCoach) {
-                        // È un allenatore, reindirizza alla home dei coach
                         window.location.href = 'coach_home.html';
                     } else {
-                        // Non è un allenatore (o errore), esegui il logout
                         await signOut(auth);
-                        showError("Accesso non autorizzato. Questa email non appartiene a un allenatore.");
-                        // Mostra comunque il form in caso di errore
+                        showMessage("Accesso non autorizzato. Questa email non appartiene a un allenatore.", 'error');
                         startLoginAnimation();
                     }
                 } else {
-                    // Utente non loggato, mostra l'animazione di login
                     startLoginAnimation();
                 }
             });
@@ -174,32 +214,35 @@
             const email = loginForm.email.value;
             const password = loginForm.password.value;
             
-            showError("", true); // Nasconde l'errore
+            showMessage("", 'hide'); // Nasconde l'errore
             loginButton.disabled = true;
             loginButton.textContent = "Verifica...";
 
             try {
-                // 1. Esegui il login
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                
-                // 2. Controlla il ruolo
-                // onAuthStateChanged si attiverà automaticamente e gestirà il reindirizzamento o l'errore
+                // onAuthStateChanged gestirà il reindirizzamento
                 
             } catch (error) {
-                // Errore di login (es. password errata)
                 console.error("Login Error:", error.code, error.message);
-                showError("Credenziali non valide. Riprova.");
+                showMessage("Credenziali non valide. Riprova.", 'error');
                 loginButton.disabled = false;
                 loginButton.textContent = "Accedi";
             }
         });
 
-        function showError(message, hide = false) {
+        // --- MODIFICA: Funzione per mostrare messaggi (errore o successo) ---
+        function showMessage(message, type = 'error') {
             errorMessage.textContent = message;
-            if (hide) {
+            // Resetta le classi di colore e visibilità
+            errorMessage.classList.remove('hidden', 'text-red-500', 'text-green-400');
+            
+            if (type === 'hide') {
                 errorMessage.classList.add('hidden');
+            } else if (type === 'success') {
+                errorMessage.classList.add('text-green-400'); // Colore per successo
             } else {
-                errorMessage.classList.remove('hidden');
+                // Default è 'error'
+                errorMessage.classList.add('text-red-500'); // Colore per errore
             }
         }
 
@@ -209,7 +252,6 @@
             const appTitle = document.getElementById('app-title');
             const loginFormContainer = document.getElementById('login-form-container');
             
-            // L'animazione parte solo se l'utente NON è loggato
             setTimeout(() => {
                 logoContainer.style.transform = 'translateY(-80%)';
                 appTitle.style.opacity = '1';
