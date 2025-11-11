@@ -9,7 +9,7 @@ const CACHE_NAME = 'fic-coach-cache-v1.5';
 // CORREZIONE: Aggiornati percorsi immagini e aggiunte pagine login/home
 const urlsToCache = [
   '/',
-  'coach_login.html',
+  'index.html',
   'coach_home.html',
   'manifest.json',
   'images/logo.png',
