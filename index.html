@@ -41,7 +41,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FIC Coach">
-    <link rel="apple-touch-icon" href="WEB APP COACH/images/COACH R4P (192).png">
+    <link rel="apple-touch-icon" href="images/COACH R4P (192).png">
     <link rel="manifest" href="manifest.json">
 </head>
 <body class="antialiased">
@@ -75,17 +75,11 @@
                         </div>
                     </div>
                     
-                    <!-- 
-                      BLOCCO AGGIUNTO: Link per recupero password
-                    -->
                     <div class="text-right">
                         <a href="#" id="forgot-password-link" class="text-sm font-medium text-sky-400 hover:text-sky-300">
                             Password dimenticata?
                         </a>
                     </div>
-                    <!-- 
-                      FINE BLOCCO AGGIUNTO 
-                    -->
                     
                     <p id="error-message" class="text-red-500 text-sm text-center hidden"></p>
                     
@@ -100,45 +94,28 @@
         </div>
     </div>
 
+    
+    <script type="module" src="auth-manager-coach.js"></script>
+    
+   
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        // *** MODIFICA: Importa setPersistence, browserLocalPersistence e sendPasswordResetEmail ***
+        // Importa SOLO le funzioni per il login e il reset.
+        // 'auth' viene importato dal manager.
+        import { auth } from "./auth-manager-coach.js"; 
         import { 
-            getAuth, 
             signInWithEmailAndPassword, 
-            onAuthStateChanged, 
-            signOut, 
-            setPersistence, 
-            browserLocalPersistence,
-            sendPasswordResetEmail  // <-- AGGIUNTO
+            sendPasswordResetEmail
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        // Configurazione del progetto 'database-atleti-fic' (dove vivono gli 'allenatori')
-        const firebaseConfig = {
-            apiKey: "AIzaSyAQ_0F8KCks_4Wn2h2aTIepQY9VrIkWpUQ",
-            authDomain: "database-atleti-fic.firebaseapp.com",
-            databaseURL: "https://database-atleti-fic-default-rtdb.firebaseio.com",
-            projectId: "database-atleti-fic",
-            storageBucket: "database-atleti-fic.firebasestorage.app",
-            messagingSenderId: "860422140545",
-            appId: "1:860422140545:web:cd14c042a47f2650681380"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Rimosso: initializeApp, getAuth, onAuthStateChanged, signOut, setPersistence, getFirestore, doc, getDoc
 
         const loginForm = document.getElementById('login-form');
         const loginButton = document.getElementById('login-button');
         const errorMessage = document.getElementById('error-message');
-        
-        // --- NUOVO: Riferimento al link di recupero password ---
         const forgotPasswordLink = document.getElementById('forgot-password-link');
 
-        // --- NUOVO: Listener per il recupero password ---
+        // --- Listener per il recupero password ---
         forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault(); // Impedisce al link di ricaricare la pagina
+            e.preventDefault(); 
             
             const email = loginForm.email.value;
             if (!email) {
@@ -146,104 +123,61 @@
                 return;
             }
 
-            // Disabilita i pulsanti e mostra un messaggio di caricamento
             loginButton.disabled = true;
-            showMessage("Invio email di recupero...", 'success'); // Messaggio di stato
+            showMessage("Invio email di recupero...", 'success'); 
 
             try {
                 await sendPasswordResetEmail(auth, email);
                 showMessage("Email inviata! Controlla la tua casella di posta.", 'success');
-            
             } catch (error) {
-                // Gestione errori
                 console.error("Errore invio email reset:", error.code, error.message);
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/missing-email') {
                     showMessage("Nessun utente trovato con questa email.", 'error');
                 } else {
                     showMessage("Si è verificato un errore. Riprova.", 'error');
                 }
             } finally {
-                // Riabilita il pulsante in ogni caso
                 loginButton.disabled = false;
             }
         });
 
+        // --- GESTIONE DELLO STATO DI AUTENTICAZIONE (Rimosso) ---
+        // auth-manager-coach.js ora gestisce questo.
 
-        // --- GESTIONE DELLO STATO DI AUTENTICAZIONE ---
-        setPersistence(auth, browserLocalPersistence)
-            .then(() => {
-                initializeAuthListener();
-            })
-            .catch((error) => {
-                console.error("Errore impostazione persistenza: ", error);
-                initializeAuthListener();
-            });
-
-        function initializeAuthListener() {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    const isCoach = await checkCoachRole(user.uid);
-                    if (isCoach) {
-                        window.location.href = 'coach_home.html';
-                    } else {
-                        await signOut(auth);
-                        showMessage("Accesso non autorizzato. Questa email non appartiene a un allenatore.", 'error');
-                        startLoginAnimation();
-                    }
-                } else {
-                    startLoginAnimation();
-                }
-            });
-        }
-
-        // --- FUNZIONE DI CONTROLLO RUOLO ---
-        async function checkCoachRole(uid) {
-            try {
-                const docRef = doc(db, "allenatori", uid);
-                const docSnap = await getDoc(docRef);
-                return docSnap.exists();
-            } catch (error) {
-                console.error("Errore nel controllo ruolo allenatore:", error);
-                return false;
-            }
-        }
-
-        // --- GESTIONE SUBMIT DEL FORM ---
+        // --- GESTIONE SUBMIT DEL FORM (Semplificato) ---
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = loginForm.email.value;
             const password = loginForm.password.value;
             
-            showMessage("", 'hide'); // Nasconde l'errore
+            showMessage("", 'hide'); 
             loginButton.disabled = true;
             loginButton.textContent = "Verifica...";
 
             try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged gestirà il reindirizzamento
-                
+                // Esegui il login
+                await signInWithEmailAndPassword(auth, email, password);
+                // NON serve reindirizzare. 
+                // auth-manager-coach.js rileverà il cambio di stato e reindirizzerà a coach_home.html.
             } catch (error) {
                 console.error("Login Error:", error.code, error.message);
-                showMessage("Credenziali non valide. Riprova.", 'error');
+                // Il codice 'auth/invalid-credential' copre sia 'user-not-found' che 'wrong-password'
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                     showMessage("Credenziali non valide. Riprova.", 'error');
+                } else {
+                    showMessage("Errore: " + error.message, 'error');
+                }
                 loginButton.disabled = false;
                 loginButton.textContent = "Accedi";
             }
         });
 
-        // --- MODIFICA: Funzione per mostrare messaggi (errore o successo) ---
         function showMessage(message, type = 'error') {
             errorMessage.textContent = message;
-            // Resetta le classi di colore e visibilità
             errorMessage.classList.remove('hidden', 'text-red-500', 'text-green-400');
-            
-            if (type === 'hide') {
-                errorMessage.classList.add('hidden');
-            } else if (type === 'success') {
-                errorMessage.classList.add('text-green-400'); // Colore per successo
-            } else {
-                // Default è 'error'
-                errorMessage.classList.add('text-red-500'); // Colore per errore
-            }
+            if (type === 'hide') errorMessage.classList.add('hidden');
+            else if (type === 'success') errorMessage.classList.add('text-green-400');
+            else errorMessage.classList.add('text-red-500');
         }
 
         // --- ANIMAZIONE ---
@@ -260,6 +194,22 @@
                 }, 500);
             }, 500);
         }
+        
+        // Avvia l'animazione solo quando l'auth-manager conferma che non siamo loggati
+        document.addEventListener('coachAuthStateReady', (e) => {
+            const { coach, error } = e.detail;
+            if (!coach) {
+                // Solo se non siamo loggati, avvia l'animazione di login
+                startLoginAnimation();
+                if (error) {
+                    // Se c'è stato un errore (es. "Accesso non autorizzato"), mostralo
+                    showMessage(error.message, 'error');
+                }
+            }
+            // Se 'coach' esiste, auth-manager-coach.js sta già reindirizzando,
+            // quindi non facciamo nulla e non mostriamo il form.
+        });
+
     </script>
 </body>
 </html>
