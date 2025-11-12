@@ -9,6 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
     
+    <!-- 
+      MODIFICA:
+      1. Aggiunto auth-manager-coach.js (con percorso ../)
+    -->
+    <script type="module" src="../auth-manager-coach.js"></script>
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -170,11 +176,14 @@
 
 
     <script type="module">
+        // --- MODIFICHE ---
+        // 1. Rimosse importazioni di Auth
+        //    Rimosso: getAuth, onAuthStateChanged
+        // 2. Mantenute importazioni di App e Firestore
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        // *** Importa Auth ***
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, getDocs, query, where, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // 3. Mantenuta la configurazione del DB Calendario
         const firebaseConfig = {
             apiKey: "AIzaSyAylHKH-9PROLRz4CGYDCN8Tggdj3_CGSI",
             authDomain: "calendario-fic.firebaseapp.com",
@@ -184,28 +193,16 @@
             appId: "1:576407223567:web:73eaa8e12aae9e4926927a"
         };
         
-        // *** MODIFICA: Configurazione per Auth (USA QUELLA DI database-atleti-fic) ***
-        // E' necessario usare la config del progetto dove esiste l'autenticazione
-         const authFirebaseConfig = {
-            apiKey: "AIzaSyAQ_0F8KCks_4Wn2h2aTIepQY9VrIkWpUQ",
-            authDomain: "database-atleti-fic.firebaseapp.com",
-            projectId: "database-atleti-fic",
-            storageBucket: "database-atleti-fic.firebasestorage.app",
-            messagingSenderId: "860422140545",
-            appId: "1:860422140545:web:cd14c042a47f2650681380"
-        };
-
-        // Inizializza l'app del CALENDARIO
+        // 4. Rimossa la configurazione di Auth (authFirebaseConfig)
+        
+        // 5. Mantenuta l'inizializzazione dell'app CALENDARIO con nome
         const calendarAppName = "AppCalendario";
         const appCalendario = initializeApp(firebaseConfig, calendarAppName);
         const db = getFirestore(appCalendario);
         
-        // Inizializza l'app di AUTH (potrebbe essere la stessa o diversa)
-        // Usiamo il nome di default per l'app di auth
-        const appAuth = initializeApp(authFirebaseConfig); 
-        const auth = getAuth(appAuth);
+        // 6. Rimosse le inizializzazioni di appAuth e auth
         
-        // --- DOM Elements ---
+        // --- DOM Elements (invariati) ---
         const pageBody = document.body;
         const calendarContainer = document.getElementById('calendar-container');
         const calendarSelector = document.getElementById('calendar-selector');
@@ -215,28 +212,30 @@
         const nextMonthBtn = document.getElementById('next-month');
         const workoutDetailsContainer = document.getElementById('workout-details-container');
 
-        // --- State Variables ---
+        // --- State Variables (invariati) ---
         let currentDate = new Date();
         let eventsData = {};
         let intensityRanges = [];
         let currentCollection = 'calendario_olimpica'; // Default collection
         let selectedDateStr = null;
 
-        // === AUTH GUARD INTEGRATO ===
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
+        // 7. SOSTITUITO onAuthStateChanged con il listener per 'coachAuthStateReady'
+        document.addEventListener('coachAuthStateReady', (e) => {
+            const { coach, error } = e.detail;
+
+            if (coach) {
                 // Utente loggato, mostra la pagina e avvia la logica
                 document.body.style.visibility = 'visible';
                 
                 // Imposta i listener e carica il calendario
                 initializePage();
             } else {
-                // Utente NON loggato, reindirizza al login
-                window.location.replace('../index.html');
+                // Utente NON loggato, auth-manager-coach.js ha già gestito il redirect
+                console.log("Utente non loggato, redirect in corso...");
             }
         });
 
-        // --- Funzione di avvio (chiamata dopo auth) ---
+        // --- Funzione di avvio (invariata, ma ora chiamata dal nuovo listener) ---
         function initializePage() {
             // --- Event Listeners ---
             prevMonthBtn.addEventListener('click', () => {
@@ -261,7 +260,7 @@
         }
 
 
-        // --- Firebase Data Fetching ---
+        // --- Firebase Data Fetching (invariato) ---
         async function fetchEventsForMonth(year, month) {
             const startOfMonthStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
             const nextMonthDate = new Date(year, month + 1, 1);
@@ -288,7 +287,7 @@
             intensityRanges.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
         }
         
-        // --- Calendar Rendering ---
+        // --- Calendar Rendering (invariato) ---
         async function renderCalendar() {
             calendarContainer.style.opacity = '0';
             await new Promise(resolve => setTimeout(resolve, 150)); 
@@ -384,7 +383,7 @@
             return eventEl;
         }
 
-        // --- Workout Details Display Logic ---
+        // --- Workout Details Display Logic (invariato) ---
         function getWorkoutIcon(type) {
              const icons = {
                 BOAT: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><path d="M2.5 17.5l2 2.5h15l2-2.5"/><path d="M12 3v14.5"/><path d="M7.5 12H2l1 5.5"/><path d="M16.5 12H22l-1 5.5"/></svg>`,
@@ -504,9 +503,8 @@
             selectedDateStr = null; // Reset selected date on calendar switch
             await renderCalendar();
         }
-
-        // --- Event Listeners e Initial Load sono ora gestiti da initializePage() ---
-
+        
+    
     </script>
 </body>
 </html>
