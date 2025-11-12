@@ -117,26 +117,16 @@
     </div>
 
     <script type="module">
-        // --- MODIFICA: Rimossa logica di autenticazione ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        // Rimosso: getAuth, onAuthStateChanged
-        import { getFirestore, collection, getDocs, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        // --- BLOCCO CONFIG MODIFICATO ---
+        // Ora importiamo 'db' direttamente dal manager (che si riferisce a 'database-atleti-fic')
+        // e solo le funzioni firestore che ci servono.
+        import { db } from "../auth-manager-coach.js";
+        import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
+        // Rimosse: initializeApp, getFirestore
         // Rimosso: authFirebaseConfig, appAuth, auth
-
-        // Config per il DATABASE (progetto 'calendario-fic')
-        const dbFirebaseConfig = {
-            apiKey: "AIzaSyAylHKH-9PROLRz4CGYDCN8Tggdj3_CGSI",
-            authDomain: "calendario-fic.firebaseapp.com",
-            projectId: "calendario-fic",
-            storageBucket: "calendario-fic.appspot.com",
-            messagingSenderId: "576407223567",
-            appId: "1:576407223567:web:73eaa8e12aae9e4926927a"
-        };
-        
-        // Inizializza l'app del DB (l'unica necessaria qui)
-        const appDb = initializeApp(dbFirebaseConfig, "AppDb");
-        const db = getFirestore(appDb); // Il DB è quello di 'calendario-fic'
+        // Rimosso: dbFirebaseConfig, appDb, e la riga const db = getFirestore(appDb)
+        // 'db' è ora importato da auth-manager-coach.js
         // --- FINE BLOCCO CONFIG MODIFICATO ---
 
 
@@ -181,6 +171,7 @@
 
                 // 2. Carica la libreria di tutti gli esercizi
                 const eserciziMap = new Map();
+                // 'db' ora si riferisce a 'database-atleti-fic'
                 const eserciziQuery = query(collection(db, "esercizi_pesistica"));
                 const eserciziSnapshot = await getDocs(eserciziQuery);
                 eserciziSnapshot.forEach(doc => {
@@ -228,9 +219,10 @@
                 }
 
             } catch (error) {
+                // Questo errore ora sarà più significativo se le collezioni non esistono
                 console.error("Errore nel caricamento dei dati: ", error);
-                plansContainer.innerHTML = `<p class="text-red-400 text-center">Impossibile caricare i dati. Riprova più tardi.</p>`;
-                circuitsContainer.innerHTML = `<p class="text-red-400 text-center">Impossibile caricare i dati. Riprova più tardi.</p>`;
+                plansContainer.innerHTML = `<p class="text-red-400 text-center">Impossibile caricare i dati. (Verifica che le collezioni esistano su 'database-atleti-fic').</p>`;
+                circuitsContainer.innerHTML = `<p class="text-red-400 text-center">Impossibile caricare i dati. (Verifica che le collezioni esistano su 'database-atleti-fic').</p>`;
             } finally {
                 loader.classList.add('hidden');
                 mainContent.classList.remove('hidden');
