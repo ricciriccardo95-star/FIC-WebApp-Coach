@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="it" class="h-full">
 <head>
@@ -9,15 +10,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
     
+    <!-- 
+      MODIFICA:
+      1. Aggiunto auth-manager-coach.js (con percorso ../)
+    -->
+    <script type="module" src="../auth-manager-coach.js"></script>
+
     <style>
-        /* Stili personalizzati di base */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0F172A; /* Slate 900 */
             color: #E2E8F0; /* Slate 200 */
         }
-
-        /* Effetto di sfondo con gradienti animati */
         .background-gradient {
             position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -38,8 +42,6 @@
             0% { transform: scale(0.9) rotate(0deg); }
             100% { transform: scale(1.2) rotate(20deg); }
         }
-        
-        /* Stile loader */
         @keyframes spin { to { transform: rotate(360deg); } }
         .loader {
             border-top-color: #3498db;
@@ -77,87 +79,69 @@
             </div>
         </div>
 
-    </div> <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        // *** Importa Auth ***
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    </div> 
+    
+    <script type="module">
+        // --- MODIFICA: Importa 'db' dal manager ---
+        // (db si riferisce al progetto 'database-atleti-fic')
+        import { db } from "../auth-manager-coach.js";
+        
+        // --- MODIFICA: Rimosse importazioni auth ---
+        // Rimosso: initializeApp, getAuth, onAuthStateChanged, firebaseConfig, app, auth
+        
         import { getFirestore, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // Configurazione Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyAQ_0F8KCks_4Wn2h2aTIepQY9VrIkWpUQ",
-            authDomain: "database-atleti-fic.firebaseapp.com",
-            projectId: "database-atleti-fic",
-            storageBucket: "database-atleti-fic.firebasestorage.app",
-            messagingSenderId: "860422140545",
-            appId: "1:860422140545:web:cd14c042a47f2650681380"
-        };
-
-        // Inizializzazione Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app); // Inizializza Auth
-
-        // Variabili DOM
         const loaderOverlay = document.getElementById('loader-overlay');
         const pdfListContainer = document.getElementById('pdf-list-container');
         
-        // === AUTH GUARD INTEGRATO ===
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
+        // --- MODIFICA: Sostituito onAuthStateChanged con listener per 'coachAuthStateReady' ---
+        document.addEventListener('coachAuthStateReady', (e) => {
+            const { coach, error } = e.detail;
+
+            if (coach) {
                 // Utente loggato, mostra la pagina e carica i PDF
                 document.body.style.visibility = 'visible';
                 loadPDFs();
             } else {
-                // Utente NON loggato, reindirizza al login
-                window.location.replace('../index.html');
+                // Non loggato, auth-manager-coach.js ha già gestito il redirect
+                console.log("Utente non loggato, redirect in corso...");
             }
         });
 
         /**
-         * Funzione per caricare i PDF (invariata, ma ora chiamata solo da Auth Guard)
+         * Funzione per caricare i PDF (invariata, ma ora chiamata dal listener)
          */
         async function loadPDFs() {
+            // 'db' è ora importato dal manager.
+            // La collezione 'convocazioni' deve esistere nel progetto 'database-atleti-fic'.
             const q = query(collection(db, "convocazioni"), orderBy("createdAt", "desc"));
 
             try {
-                const snapshot = await getDocs(q); // <-- Esegue la query una volta
-
-                pdfListContainer.innerHTML = ''; // Pulisce la lista
+                const snapshot = await getDocs(q);
+                pdfListContainer.innerHTML = ''; 
                 if (snapshot.empty) {
                     pdfListContainer.innerHTML = `<p class="text-slate-400 text-center py-4">Al momento non ci sono convocazioni.</p>`;
-                    loaderOverlay.classList.add('hidden'); // Nasconde il loader
+                    loaderOverlay.classList.add('hidden');
                     return;
                 }
-
                 snapshot.docs.forEach(doc => {
                     const data = doc.data();
                     const date = data.createdAt ? data.createdAt.toDate().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Data non disp.';
-                    
                     const fileName = data.fileName || `${data.titolo.replace(/\s+/g, '_') || 'convocazione'}.pdf`; 
-
                     const docWrapper = document.createElement('div');
                     docWrapper.className = 'group block bg-slate-800 p-4 rounded-lg transition-all duration-300 hover:bg-slate-700/60 hover:shadow-lg border border-transparent';
-
                     docWrapper.innerHTML = `
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                             <div class="mb-3 sm:mb-0">
                                 <p class="font-bold text-lg text-blue-300">${data.titolo}</p>
                                 <p class="text-sm text-slate-400">Pubblicato il: ${date}</p>
                             </div>
-                            
                             <div class="flex-shrink-0 flex items-center gap-3">
-                                <a href="${data.url}" 
-                                   target="_blank" 
-                                   class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                                <a href="${data.url}" target="_blank" class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                     <span>Visualizza</span>
                                 </a>
-                                
-                                <a href="${data.url}" 
-                                   download="${fileName}" 
-                                   target="_blank" 
-                                   class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                                <a href="${data.url}" download="${fileName}" target="_blank" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                     <span>Scarica</span>
                                 </a>
@@ -166,26 +150,13 @@
                     `;
                     pdfListContainer.appendChild(docWrapper);
                 });
-                
-                loaderOverlay.classList.add('hidden'); // Nasconde il loader dopo aver caricato
-
+                loaderOverlay.classList.add('hidden');
             } catch (error) {
                 console.error("Errore nel caricamento Firestore: ", error);
                 pdfListContainer.innerHTML = `<p class="text-red-400 text-center py-4">Errore nel caricamento dell'elenco.</p>`;
                 loaderOverlay.classList.add('hidden');
             }
         }
-
-
-        // --- EVENT LISTENERS ---
-        // *** RIMOSSO: Il 'DOMContentLoaded' listener è stato sostituito
-        // dall'avvio tramite 'onAuthStateChanged' ***
-        /*
-        document.addEventListener('DOMContentLoaded', () => {
-             // Vecchio codice con signInAnonymously rimosso
-        });
-        */
-
     </script>
 </body>
 </html>
