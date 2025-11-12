@@ -1,15 +1,15 @@
 // --- FILE SERVICE WORKER (sw.js) ---
 // Questo file gestisce la cache e l'aggiornamento della PWA.
 
-// 1. Definiamo il nome e la versione della nostra cache.
-// IMPORTANTE: Versione aggiornata a 'v4' per forzare l'aggiornamento
-const CACHE_NAME = 'fic-coach-cache-v1.5';
+// MODIFICA CHIAVE: Ho cambiato la versione da v5 a v6.
+// Questo forzerà il browser a eliminare la vecchia cache (che contiene
+// il file coach_home.html rotto) e a installare questa nuova versione.
+const CACHE_NAME = 'fic-coach-cache-v6';
 
 // 2. Elenco dei file fondamentali da salvare in cache.
-// CORREZIONE: Aggiornati percorsi immagini e aggiunte pagine login/home
 const urlsToCache = [
   '/',
-  'index.html',
+  'index.html', 
   'coach_home.html',
   'manifest.json',
   'images/logo.png',
@@ -18,26 +18,27 @@ const urlsToCache = [
   'CALENDARIO/calendario.html',
   'CONVOCAZIONI/convocazioni.html',
   'DISPENDIO/dispendi.html',
-  'RANKING/home_ranking.html'
+  'RANKING/home_ranking.html',
+  'GYM/gym_coach.html'
 ];
 
 // 3. Evento 'install': si attiva quando il Service Worker viene installato.
-// Apre la cache e aggiunge tutti i nostri file.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Cache aperta');
+        console.log('Cache v6 aperta');
         // Usiamo addAll. Se ANCHE SOLO UN file fallisce, l'installazione si blocca.
         return cache.addAll(urlsToCache);
       })
       .catch(err => {
-        console.error('Impossibile aggiungere i file alla cache:', err);
+        console.error('Impossibile aggiungere i file alla cache v6:', err);
       })
   );
 });
 
 // 4. Evento 'fetch': si attiva ogni volta che l'app chiede un file.
+// (Strategia Cache-First, va bene per ora)
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
@@ -54,16 +55,15 @@ self.addEventListener('fetch', event => {
 });
 
 // 5. Evento 'activate': si attiva quando il nuovo Service Worker prende il controllo.
-// Questo è FONDAMENTALE per gli aggiornamenti.
-// Cancella tutte le vecchie cache che non corrispondono al nuovo CACHE_NAME.
+// Cancella tutte le vecchie cache (come 'fic-coach-cache-v5').
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME]; // Mantiene solo la cache v4
+  const cacheWhitelist = [CACHE_NAME]; // Mantiene solo la cache v6
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // Se la cache non è nella "lista bianca" (cioè è vecchia, es. v1, v2, v3), la cancelliamo.
+            // Se la cache non è nella "lista bianca" (cioè è vecchia, es. v5), la cancelliamo.
             console.log('Cancellazione vecchia cache:', cacheName);
             return caches.delete(cacheName);
           }
