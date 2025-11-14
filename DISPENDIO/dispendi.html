@@ -152,7 +152,7 @@
         </header>
 
         <div class="space-y-8">
-            <!-- Calcolatore RowErg (invariato) -->
+            <!-- Calcolatore RowErg -->
             <div class="bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg p-6">
                 <h2 class="text-xl sm:text-2xl font-bold text-white mb-6 whitespace-nowrap"> Calcolo Dispendi RowErg</h2>
                 <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
@@ -199,7 +199,7 @@
                 </div>
             </div>
 
-            <!-- Calcolatore BikeErg (invariato) -->
+            <!-- Calcolatore BikeErg -->
             <div class="bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg p-6">
                 <h2 class="text-xl sm:text-2xl font-bold text-white mb-6 whitespace-nowrap">Calcolo Dispendi BikeErg</h2>
                 <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
@@ -247,7 +247,7 @@
         </div>
     </div>
 
-    <!-- Modals (invariati) -->
+    <!-- Modals -->
     <div id="modal-backdrop" class="fixed inset-0 bg-black/60 hidden z-40"></div>
     <div id="messageBox" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-lg p-6 shadow-lg text-center hidden z-50">
         <p id="messageText" class="mb-6 text-lg"></p>
@@ -256,13 +256,9 @@
 
     <script type="module">
         // --- MODIFICA: Rimossa logica di autenticazione ---
-        // Rimosso: initializeApp, getAuth, onAuthStateChanged, firebaseConfig, app, auth
-        
-        // La logica di questa pagina (calcoli) non dipende da chi è l'utente,
-        // ma solo dal fatto CHE un utente sia loggato.
         // auth-manager-coach.js gestisce il redirect se l'utente non è loggato.
 
-        // --- ELEMENTI DOM (invariati) ---
+        // --- ELEMENTI DOM ---
         const inputRowergRecord = document.getElementById('inputRowergRecord');
         const setRowergRecordBtn = document.getElementById('setRowergRecordBtn');
         const rowergRecordResults = document.getElementById('rowerg-record-results');
@@ -273,6 +269,7 @@
         const percentageWattRowergContainer = document.getElementById('percentage-watt-rowerg-container').querySelector('.result-value');
         const percentageTimeRowergContainer = document.getElementById('percentage-time-rowerg-container').querySelector('.result-value');
         const percentageMediaRowergContainer = document.getElementById('percentage-media-rowerg-container').querySelector('.result-value');
+        
         const inputBikeergRecord = document.getElementById('inputBikeergRecord');
         const setBikeergRecordBtn = document.getElementById('setBikeergRecordBtn');
         const bikeergRecordResults = document.getElementById('bikeerg-record-results');
@@ -287,10 +284,9 @@
         let baseWattsRowerg = 0;
         let baseWattsBikeerg = 0;
 
-        // --- MODIFICA: Sostituito onAuthStateChanged con listener per 'coachAuthStateReady' ---
+        // --- GESTORE AUTENTICAZIONE ---
         document.addEventListener('coachAuthStateReady', (e) => {
             const { coach, error } = e.detail;
-
             if (coach) {
                 // Utente loggato, mostra la pagina e attiva i listener
                 document.body.style.visibility = 'visible';
@@ -301,19 +297,20 @@
             }
         });
 
-        // --- Funzione setupEventListeners (invariata) ---
+        // --- IMPOSTAZIONE EVENT LISTENER ---
         function setupEventListeners() {
             inputRowergRecord.addEventListener('input', formatTimeInput);
             inputBikeergRecord.addEventListener('input', formatTimeInput);
 
             setRowergRecordBtn.addEventListener('click', () => {
                 const timeValue = inputRowergRecord.value;
+                // Assicura che il tempo abbia i decimi (es. 07:00 -> 07:00.0)
                 const fullTimeValue = timeValue.includes('.') ? timeValue : (timeValue.length === 5 ? `${timeValue}.0` : timeValue);
                 const recordRowergSeconds = convertTimeToSeconds(fullTimeValue);
 
                 if (recordRowergSeconds > 0) {
                     baseWattsRowerg = calculateWattsRowerg(recordRowergSeconds, 2000);
-                    const avg500mSeconds = calculateAverageSegmentTime(recordRowergSeconds);
+                    const avg500mSeconds = calculateAverageSegmentTime(recordRowergSeconds); // Diviso 4
                     recordMediaRowergContainer.textContent = formatSecondsToTime(avg500mSeconds);
                     recordWattRowergContainer.textContent = baseWattsRowerg.toFixed(2);
                     rowergRecordResults.classList.remove('hidden');
@@ -339,7 +336,7 @@
 
                 if (recordBikeergSeconds > 0) {
                     baseWattsBikeerg = calculateWattsBikeerg(recordBikeergSeconds, 4000); 
-                    const avg1000mSeconds = calculateAverageSegmentTime(recordBikeergSeconds);
+                    const avg1000mSeconds = calculateAverageSegmentTime(recordBikeergSeconds); // Diviso 4
                     recordMediaBikeergContainer.textContent = formatSecondsToTime(avg1000mSeconds);
                     recordWattBikeergContainer.textContent = baseWattsBikeerg.toFixed(2);
                     bikeergRecordResults.classList.remove('hidden');
@@ -361,7 +358,7 @@
             document.getElementById('messageBoxOkBtn').addEventListener('click', () => hideModal(document.getElementById('messageBox')));
         }
         
-        // --- MODIFICA: Aggiunta implementazione per formatTimeInput ---
+        // --- FORMATTAZIONE INPUT (maschera mm:ss.s) ---
         function formatTimeInput(e) {
             const input = e.target;
             const selectionStart = input.selectionStart;
@@ -388,7 +385,6 @@
             }
             
             // Aggiunta automatica dei separatori SOLO se si sta digitando (non cancellando)
-            // e l'input non è 'deleteContentBackward' ecc.
             if (e.inputType && e.inputType.startsWith('insert')) {
                 if (digits.length === 2 && originalLength === 1) {
                     // Digitata la 2a cifra (es. 1 -> 12)
@@ -404,50 +400,46 @@
             // Gestione posizione cursore
             let newCursorPos = selectionStart;
             
-            // Se abbiamo aggiunto un carattere (es. 12 -> 12:)
             if (formattedValue.length === originalLength + 1) {
                 newCursorPos = selectionStart + 1;
             } 
-            // Se il valore formattato è più corto (es. cancellazione di ':' o '.')
             else if (formattedValue.length < originalLength) {
                  newCursorPos = selectionStart - (originalLength - formattedValue.length);
                  if (newCursorPos < 0) newCursorPos = 0;
             }
-            // Se la lunghezza è la stessa ma il valore è cambiato (es. 12a -> 12)
             else if (formattedValue !== value) {
                  newCursorPos = selectionStart - (originalLength - formattedValue.length);
                  if (newCursorPos < 0) newCursorPos = 0;
             }
-            // Caso speciale per la prima digitazione
              if (originalLength === 0 && formattedValue.length === 1) {
                  newCursorPos = 1;
              }
-
-            // Caso speciale: se digito '12' -> '12:'. Il cursore era a 2, deve andare a 3.
             if (formattedValue.length === 3 && originalLength === 2 && formattedValue.endsWith(':')) {
                 newCursorPos = 3;
             }
-            // Caso speciale: se digito '12:34' -> '12:34.'. Il cursore era a 5, deve andare a 6.
              if (formattedValue.length === 6 && originalLength === 5 && formattedValue.endsWith('.')) {
                 newCursorPos = 6;
             }
 
             try {
-                // Applica la nuova posizione del cursore solo se l'elemento è attivo
                 if (document.activeElement === input) {
                     input.setSelectionRange(newCursorPos, newCursorPos);
                 }
             } catch (ex) {
-                // Ignora errori se il campo non è focused
+                // Ignora errori
             }
         }
         
-        // --- Funzioni modali (invariate) ---
+        // --- FUNZIONI MODALI ---
         function showModal(modal) { document.getElementById('modal-backdrop').classList.remove('hidden'); modal.classList.remove('hidden'); }
         function hideModal(modal) { document.getElementById('modal-backdrop').classList.add('hidden'); modal.classList.add('hidden'); }
         function showMessageBox(message) { document.getElementById('messageText').textContent = message; showModal(document.getElementById('messageBox')); }
         
-        // --- Funzioni di calcolo (invariate) ---
+        // --- FUNZIONI DI CALCOLO ---
+        
+        /**
+         * Converte una stringa 'mm:ss.s' in secondi totali.
+         */
         function convertTimeToSeconds(timeString) {
             if (!timeString || !timeString.includes(':') || !timeString.includes('.')) {
                 return 0;
@@ -465,62 +457,92 @@
             return (minutes * 60) + seconds + (tenths / 10);
         }
 
+        /**
+         * Calcola i Watt per il RowErg.
+         */
         function calculateWattsRowerg(totalSeconds, distance) {
             // Formula per Rowerg: Watts = 2.80 / (pace_in_seconds_per_meter)^3
-            // Pace = totalSeconds / distance
+            // Pace = totalSeconds / distance (es. 420s / 2000m = 0.21)
             const pace = totalSeconds / distance;
-            return 2.80 / Math.pow(pace, 3);
+            return 2.80 / Math.pow(pace, 3); // Es. 2.80 / (0.21^3) = 302.3W
         }
 
+        /**
+         * Calcola i Watt per il BikeErg (normalizzati a quelli del Rowerg).
+         */
         function calculateWattsBikeerg(totalSeconds, distance) {
-            // Formula per BikeErg: Watts = 2.80 / (pace_in_seconds_per_meter)^3 + (Coefficiente * V^2)
-            // Semplificazione (basata sulla formula inversa usata da C2):
-            // Pace (sec/1000m) = cbrt(2.80 / (Watts - 10)) + 300 / (Watts - 10)
-            // E' complessa. Usiamo la stessa del Rowerg come approssimazione C2.
-            // Pace (sec/metro) = cbrt(2.80 / Watts)
-            const pace = totalSeconds / distance;
-            return 2.80 / Math.pow(pace, 3);
-            // NOTA: La formula della BikeErg è diversa e più complessa (include resistenza aria).
-            // Usiamo la stessa del Rowerg per coerenza (come fa C2 per il calcolo pace/watt)
-            // ma i watt della BikeErg NON sono direttamente comparabili a quelli del Rowerg.
+            // Usa la costante 2.80, ma normalizza il passo.
+            // Il passo s/m della BikeErg (es. 420s / 4000m = 0.105) 
+            // è la metà di quello del Rowerg a parità di watt (0.21).
+            // Quindi moltiplichiamo il passo s/m della BikeErg per 2.
+            const pace_sec_per_meter = totalSeconds / distance; // Es. 0.105
+            const effective_rower_pace = pace_sec_per_meter * 2; // Es. 0.21
+            
+            // Usa la formula C2 standard con il passo normalizzato
+            return 2.80 / Math.pow(effective_rower_pace, 3); // Es. 2.80 / (0.21^3) = 302.3W
         }
 
+        /**
+         * Calcola il tempo (secondi) dati i Watt per il Rowerg.
+         */
         function calculateTimeFromWattsRowerg(watts, distance) {
             // Formula inversa: pace = cbrt(2.80 / watts)
             const pace = Math.cbrt(2.80 / watts);
             return pace * distance;
         }
 
+        /**
+         * Calcola il tempo (secondi) dati i Watt per il BikeErg.
+         */
         function calculateTimeFromWattsBikeerg(watts, distance) {
-            // Vedi nota sopra: usiamo la stessa formula inversa.
-            const pace = Math.cbrt(2.80 / watts);
-            return pace * distance;
+            // Formula inversa della versione normalizzata:
+            // watts = 2.80 / ( (pace_s_m * 2)^3 )
+            // watts = 2.80 / ( pace_s_m^3 * 8 )
+            // pace_s_m^3 = 2.80 / (watts * 8)
+            // pace_s_m = cbrt( 2.80 / (watts * 8) )
+            const pace_sec_per_meter = Math.cbrt(2.80 / (watts * 8));
+            return pace_sec_per_meter * distance;
         }
 
+        /**
+         * Calcola il passo medio (per 500m Rowerg o 1000m BikeErg).
+         * Dato che le distanze sono 2000m e 4000m, è sempre diviso 4.
+         */
         function calculateAverageSegmentTime(totalSeconds) {
-            // Per Rowerg (2000m) -> media su 500m (totalSeconds / 4)
-            // Per BikeErg (4000m) -> media su 1000m (totalSeconds / 4)
-            // La funzione è generica
             return totalSeconds / 4.0;
         }
 
+        /**
+         * Formatta i secondi totali in 'mm:ss.s'.
+         */
         function formatSecondsToTime(totalSeconds) {
             if (isNaN(totalSeconds) || totalSeconds < 0) {
                 return "--:--.-";
             }
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = Math.floor(totalSeconds % 60);
-            const tenths = Math.round((totalSeconds - (minutes * 60) - seconds) * 10);
+            let tenths = Math.round((totalSeconds - (minutes * 60) - seconds) * 10);
             
-            // Gestione del caso in cui tenths è 10 (es. 59.99 -> 60.0)
+            let adjustedSeconds = seconds;
+            let adjustedMinutes = minutes;
+
+            // Gestione del caso in cui tenths è 10 (es. 59.95s -> 60.0s)
             if (tenths === 10) {
-                 return `${minutes < 10 ? '0' : ''}${minutes}:${(seconds + 1) < 10 ? '0' : ''}${seconds + 1}.0`;
+                 tenths = 0;
+                 adjustedSeconds += 1;
+            }
+            
+            // Gestione del caso in cui i secondi diventano 60
+            if (adjustedSeconds === 60) {
+                adjustedSeconds = 0;
+                adjustedMinutes += 1;
             }
 
-            return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}.${tenths}`;
+            return `${adjustedMinutes < 10 ? '0' : ''}${adjustedMinutes}:${adjustedSeconds < 10 ? '0' : ''}${adjustedSeconds}.${tenths}`;
         }
         
-        // --- Funzioni globali per i select (invariate) ---
+        // --- GESTORI PERCENTUALI (collegati a onchange) ---
+        
         window.calculatePercentageRowerg = function() {
             if (baseWattsRowerg === 0) return;
             const percentage = parseInt(percentageSelectRowerg.value, 10);
