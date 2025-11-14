@@ -4,7 +4,7 @@
 // MODIFICA CHIAVE: Ho cambiato la versione da v5 a v6.
 // Questo forzerà il browser a eliminare la vecchia cache (che contiene
 // il file coach_home.html rotto) e a installare questa nuova versione.
-const CACHE_NAME = 'fic-coach-cache-v7.2';
+const CACHE_NAME = 'fic-coach-cache-v8.0';
 
 // 2. Elenco dei file fondamentali da salvare in cache.
 const urlsToCache = [
