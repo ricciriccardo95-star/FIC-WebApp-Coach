@@ -361,21 +361,201 @@
             document.getElementById('messageBoxOkBtn').addEventListener('click', () => hideModal(document.getElementById('messageBox')));
         }
         
-        // --- Tutta la logica sottostante (maschere, calcoli, modali) rimane invariata ---
+        // --- MODIFICA: Aggiunta implementazione per formatTimeInput ---
+        function formatTimeInput(e) {
+            const input = e.target;
+            const selectionStart = input.selectionStart;
+            let value = input.value;
+            const originalLength = value.length;
+            
+            // Rimuovi tutto tranne le cifre
+            let digits = value.replace(/[^\d]/g, '');
+
+            if (digits.length > 5) {
+                digits = digits.substring(0, 5); // Max 5 cifre (mmsss)
+            }
+
+            let formattedValue = '';
+            if (digits.length > 4) {
+                // 5 cifre: mmsss -> mm:ss.s
+                formattedValue = digits.substring(0, 2) + ':' + digits.substring(2, 4) + '.' + digits.substring(4);
+            } else if (digits.length > 2) {
+                // 3 o 4 cifre: mms / mmss -> mm:ss
+                formattedValue = digits.substring(0, 2) + ':' + digits.substring(2);
+            } else {
+                // 1 o 2 cifre: m / mm
+                formattedValue = digits;
+            }
+            
+            // Aggiunta automatica dei separatori SOLO se si sta digitando (non cancellando)
+            // e l'input non è 'deleteContentBackward' ecc.
+            if (e.inputType && e.inputType.startsWith('insert')) {
+                if (digits.length === 2 && originalLength === 1) {
+                    // Digitata la 2a cifra (es. 1 -> 12)
+                    formattedValue += ':';
+                } else if (digits.length === 4 && originalLength === 4 && value.includes(':')) {
+                     // Digitata la 4a cifra (es. 12:3 -> 12:34)
+                    formattedValue += '.';
+                }
+            }
+
+            input.value = formattedValue;
+
+            // Gestione posizione cursore
+            let newCursorPos = selectionStart;
+            
+            // Se abbiamo aggiunto un carattere (es. 12 -> 12:)
+            if (formattedValue.length === originalLength + 1) {
+                newCursorPos = selectionStart + 1;
+            } 
+            // Se il valore formattato è più corto (es. cancellazione di ':' o '.')
+            else if (formattedValue.length < originalLength) {
+                 newCursorPos = selectionStart - (originalLength - formattedValue.length);
+                 if (newCursorPos < 0) newCursorPos = 0;
+            }
+            // Se la lunghezza è la stessa ma il valore è cambiato (es. 12a -> 12)
+            else if (formattedValue !== value) {
+                 newCursorPos = selectionStart - (originalLength - formattedValue.length);
+                 if (newCursorPos < 0) newCursorPos = 0;
+            }
+            // Caso speciale per la prima digitazione
+             if (originalLength === 0 && formattedValue.length === 1) {
+                 newCursorPos = 1;
+             }
+
+            // Caso speciale: se digito '12' -> '12:'. Il cursore era a 2, deve andare a 3.
+            if (formattedValue.length === 3 && originalLength === 2 && formattedValue.endsWith(':')) {
+                newCursorPos = 3;
+            }
+            // Caso speciale: se digito '12:34' -> '12:34.'. Il cursore era a 5, deve andare a 6.
+             if (formattedValue.length === 6 && originalLength === 5 && formattedValue.endsWith('.')) {
+                newCursorPos = 6;
+            }
+
+            try {
+                // Applica la nuova posizione del cursore solo se l'elemento è attivo
+                if (document.activeElement === input) {
+                    input.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            } catch (ex) {
+                // Ignora errori se il campo non è focused
+            }
+        }
         
-        function formatTimeInput(e) { /* ... (invariato) ... */ }
+        // --- Funzioni modali (invariate) ---
         function showModal(modal) { document.getElementById('modal-backdrop').classList.remove('hidden'); modal.classList.remove('hidden'); }
         function hideModal(modal) { document.getElementById('modal-backdrop').classList.add('hidden'); modal.classList.add('hidden'); }
         function showMessageBox(message) { document.getElementById('messageText').textContent = message; showModal(document.getElementById('messageBox')); }
-        function convertTimeToSeconds(timeString) { /* ... (invariato) ... */ }
-        function calculateWattsRowerg(totalSeconds, distance) { /* ... (invariato) ... */ }
-        function calculateWattsBikeerg(totalSeconds, distance) { /* ... (invariato) ... */ }
-        function calculateTimeFromWattsRowerg(watts, distance) { /* ... (invariato) ... */ }
-        function calculateTimeFromWattsBikeerg(watts, distance) { /* ... (invariato) ... */ }
-        function calculateAverageSegmentTime(totalSeconds) { /* ... (invariato) ... */ }
-        function formatSecondsToTime(totalSeconds) { /* ... (invariato) ... */ }
-        window.calculatePercentageRowerg = function() { /* ... (invariato) ... */ }
-        window.calculatePercentageBikeerg = function() { /* ... (invariato) ... */ }
+        
+        // --- Funzioni di calcolo (invariate) ---
+        function convertTimeToSeconds(timeString) {
+            if (!timeString || !timeString.includes(':') || !timeString.includes('.')) {
+                return 0;
+            }
+            const parts = timeString.split(':');
+            if (parts.length !== 2) return 0;
+            const minutes = parseInt(parts[0], 10);
+            const secondParts = parts[1].split('.');
+            if (secondParts.length !== 2) return 0;
+            const seconds = parseInt(secondParts[0], 10);
+            const tenths = parseInt(secondParts[1], 10);
+            if (isNaN(minutes) || isNaN(seconds) || isNaN(tenths)) {
+                return 0;
+            }
+            return (minutes * 60) + seconds + (tenths / 10);
+        }
+
+        function calculateWattsRowerg(totalSeconds, distance) {
+            // Formula per Rowerg: Watts = 2.80 / (pace_in_seconds_per_meter)^3
+            // Pace = totalSeconds / distance
+            const pace = totalSeconds / distance;
+            return 2.80 / Math.pow(pace, 3);
+        }
+
+        function calculateWattsBikeerg(totalSeconds, distance) {
+            // Formula per BikeErg: Watts = 2.80 / (pace_in_seconds_per_meter)^3 + (Coefficiente * V^2)
+            // Semplificazione (basata sulla formula inversa usata da C2):
+            // Pace (sec/1000m) = cbrt(2.80 / (Watts - 10)) + 300 / (Watts - 10)
+            // E' complessa. Usiamo la stessa del Rowerg come approssimazione C2.
+            // Pace (sec/metro) = cbrt(2.80 / Watts)
+            const pace = totalSeconds / distance;
+            return 2.80 / Math.pow(pace, 3);
+            // NOTA: La formula della BikeErg è diversa e più complessa (include resistenza aria).
+            // Usiamo la stessa del Rowerg per coerenza (come fa C2 per il calcolo pace/watt)
+            // ma i watt della BikeErg NON sono direttamente comparabili a quelli del Rowerg.
+        }
+
+        function calculateTimeFromWattsRowerg(watts, distance) {
+            // Formula inversa: pace = cbrt(2.80 / watts)
+            const pace = Math.cbrt(2.80 / watts);
+            return pace * distance;
+        }
+
+        function calculateTimeFromWattsBikeerg(watts, distance) {
+            // Vedi nota sopra: usiamo la stessa formula inversa.
+            const pace = Math.cbrt(2.80 / watts);
+            return pace * distance;
+        }
+
+        function calculateAverageSegmentTime(totalSeconds) {
+            // Per Rowerg (2000m) -> media su 500m (totalSeconds / 4)
+            // Per BikeErg (4000m) -> media su 1000m (totalSeconds / 4)
+            // La funzione è generica
+            return totalSeconds / 4.0;
+        }
+
+        function formatSecondsToTime(totalSeconds) {
+            if (isNaN(totalSeconds) || totalSeconds < 0) {
+                return "--:--.-";
+            }
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            const tenths = Math.round((totalSeconds - (minutes * 60) - seconds) * 10);
+            
+            // Gestione del caso in cui tenths è 10 (es. 59.99 -> 60.0)
+            if (tenths === 10) {
+                 return `${minutes < 10 ? '0' : ''}${minutes}:${(seconds + 1) < 10 ? '0' : ''}${seconds + 1}.0`;
+            }
+
+            return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}.${tenths}`;
+        }
+        
+        // --- Funzioni globali per i select (invariate) ---
+        window.calculatePercentageRowerg = function() {
+            if (baseWattsRowerg === 0) return;
+            const percentage = parseInt(percentageSelectRowerg.value, 10);
+            if (isNaN(percentage)) {
+                percentageRowergResultsContainer.classList.add('hidden');
+                return;
+            }
+
+            const targetWatts = baseWattsRowerg * (percentage / 100.0);
+            const equivalentTime = calculateTimeFromWattsRowerg(targetWatts, 2000);
+            const equivalentAvg500m = calculateAverageSegmentTime(equivalentTime);
+
+            percentageWattRowergContainer.textContent = targetWatts.toFixed(2);
+            percentageTimeRowergContainer.textContent = formatSecondsToTime(equivalentTime);
+            percentageMediaRowergContainer.textContent = formatSecondsToTime(equivalentAvg500m);
+            percentageRowergResultsContainer.classList.remove('hidden');
+        }
+
+        window.calculatePercentageBikeerg = function() {
+            if (baseWattsBikeerg === 0) return;
+            const percentage = parseInt(percentageSelectBikeerg.value, 10);
+            if (isNaN(percentage)) {
+                percentageBikeergResultsContainer.classList.add('hidden');
+                return;
+            }
+
+            const targetWatts = baseWattsBikeerg * (percentage / 100.0);
+            const equivalentTime = calculateTimeFromWattsBikeerg(targetWatts, 4000);
+            const equivalentAvg1000m = calculateAverageSegmentTime(equivalentTime);
+
+            percentageWattBikeergContainer.textContent = targetWatts.toFixed(2);
+            percentageTimeBikeergContainer.textContent = formatSecondsToTime(equivalentTime);
+            percentageMediaBikeergContainer.textContent = formatSecondsToTime(equivalentAvg1000m);
+            percentageBikeergResultsContainer.classList.remove('hidden');
+        }
 
     </script>
 </body>
