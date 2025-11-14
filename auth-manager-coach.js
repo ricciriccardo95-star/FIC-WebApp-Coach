@@ -6,6 +6,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// *** 1. AGGIUNGI IMPORT PER APP CHECK ***
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
+
 // Configurazione (la stessa di index.html)
 const firebaseConfig = {
     apiKey: "AIzaSyAQ_0F8KCks_4Wn2h2aTIepQY9VrIkWpUQ",
@@ -21,6 +24,13 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// *** 2. INIZIALIZZA APP CHECK (VERSIONE DI PRODUZIONE) ***
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider('6LcQ7wwsAAAAAHKXql8POR7OFWD_NIWFCO3pwA2vV'),
+  isTokenAutoRefreshEnabled: true
+});
+
 
 const CACHE_KEY = 'currentCoach';
 
@@ -192,4 +202,4 @@ const authStateManager = async () => {
 
 // Avvia il gestore di autenticazione
 authStateManager();
-// MODIFICA: Ho rimosso la parentesi graffa '}' che era qui sotto e causava un errore di sintassi.
+}
