@@ -202,4 +202,3 @@ const authStateManager = async () => {
 
 // Avvia il gestore di autenticazione
 authStateManager();
-}
