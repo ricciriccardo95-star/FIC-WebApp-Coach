@@ -4,7 +4,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
+// MODIFICA: Importato ReCaptchaEnterpriseProvider invece di V3
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAQ_0F8KCks_4Wn2h2aTIepQY9VrIkWpUQ",
@@ -13,7 +14,7 @@ const firebaseConfig = {
     projectId: "database-atleti-fic",
     storageBucket: "database-atleti-fic.firebasestorage.app",
     messagingSenderId: "860422140545",
-    appId: "1:860422140545:web:cd14c042a47f2650681380"
+    appId: "1:860422140545:web:cd14c042a47f2650681380" // L'AppID è confermato corretto
 };
 
 // 1. Inizializza l'App
@@ -21,11 +22,12 @@ export const app = initializeApp(firebaseConfig);
 
 // 2. *** IMPORTANTE: INIZIALIZZA APP CHECK SUBITO QUI, PRIMA DI AUTH E DB ***
 try {
+    // MODIFICA: Uso di ReCaptchaEnterpriseProvider con la nuova chiave
     const appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('6LeQ7wwsAAAAAHXKqRPOR70fWD_NfWFO03pwkZvY'),
+        provider: new ReCaptchaEnterpriseProvider('6LdySxgsAAAAAOPjpX_oQPGTAJoqxJTNe9758JE0'),
         isTokenAutoRefreshEnabled: true
     });
-    console.log("AuthManager Coach: App Check inizializzato (V3).");
+    console.log("AuthManager Coach: App Check inizializzato (Enterprise).");
 } catch (e) {
     console.warn("AuthManager Coach: Errore init App Check:", e);
 }
