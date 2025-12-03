@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym - Coach View & Timer</title>
+    <title>Gym - Coach View & Timer VOICE PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,6 +53,10 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .close-btn-hover:hover { transform: scale(1.1) rotate(90deg); }
+        
+        /* Animazione pulsazione timer finale */
+        .pulsing-text { animation: textPulse 0.5s infinite alternate; color: #ef4444 !important; text-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+        @keyframes textPulse { from { transform: scale(1); } to { transform: scale(1.05); } }
     </style>
      <script type="module" src="../auth-manager-coach.js"></script>
 </head>
@@ -158,7 +162,7 @@
         import { db } from "../auth-manager-coach.js";
         import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
-        // --- ELEMENTI DOM PRINCIPALI ---
+        // --- ELEMENTI DOM ---
         const loader = document.getElementById('loader-overlay');
         const mainContent = document.getElementById('main-content');
         const welcomeMessage = document.getElementById('welcome-message');
@@ -175,7 +179,7 @@
         const circuitsContainer = document.getElementById('circuits-container');
         const noCircuitsMessage = document.getElementById('no-circuits-message');
 
-        // --- ELEMENTI TIMER (AGGIUNTI) ---
+        // --- TIMER DOM ---
         const timerOverlay = document.getElementById('circuit-timer-overlay');
         const closeTimerBtn = document.getElementById('close-timer');
         const timerExerciseName = document.getElementById('timer-exercise-name');
@@ -206,7 +210,7 @@
                 welcomeMessage.textContent = `Benvenuto, ${coach.cognome || 'Coach'}`;
                 loadGymData();
             } else {
-                console.log("Auth fallita, redirect in corso...");
+                console.log("Auth fallita...");
             }
         });
         
@@ -216,9 +220,7 @@
                 const eserciziMap = new Map();
                 const eserciziQuery = query(collection(db, "esercizi_pesistica"));
                 const eserciziSnapshot = await getDocs(eserciziQuery);
-                eserciziSnapshot.forEach(doc => {
-                    eserciziMap.set(doc.id, doc.data());
-                });
+                eserciziSnapshot.forEach(doc => { eserciziMap.set(doc.id, doc.data()); });
 
                 const schedeQuery = query(collection(db, "schede_pesistica"));
                 const circuitiQuery = query(collection(db, "circuiti_pesistica"));
@@ -228,41 +230,28 @@
                     getDocs(circuitiQuery)
                 ]);
 
-                if (schedeSnapshot.empty) {
-                    noSchedeMessage.classList.remove('hidden');
-                } else {
+                if (schedeSnapshot.empty) { noSchedeMessage.classList.remove('hidden'); } 
+                else {
                     plansContainer.innerHTML = '';
                     const schede = schedeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     schede.sort((a, b) => a.nomeScheda.localeCompare(b.nomeScheda));
-                    schede.forEach(scheda => {
-                        const planElement = createPlanElement(scheda, massimaliMap, eserciziMap);
-                        plansContainer.appendChild(planElement);
-                    });
+                    schede.forEach(scheda => { plansContainer.appendChild(createPlanElement(scheda, massimaliMap, eserciziMap)); });
                     noSchedeMessage.classList.add('hidden');
                 }
 
-                if (circuitiSnapshot.empty) {
-                    noCircuitsMessage.classList.remove('hidden');
-                } else {
+                if (circuitiSnapshot.empty) { noCircuitsMessage.classList.remove('hidden'); } 
+                else {
                     circuitsContainer.innerHTML = '';
                     const circuiti = circuitiSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     circuiti.sort((a, b) => a.nomeCircuito.localeCompare(b.nomeCircuito));
-                    circuiti.forEach(circuito => {
-                        const circuitElement = createCircuitElement(circuito, eserciziMap);
-                        circuitsContainer.appendChild(circuitElement);
-                    });
+                    circuiti.forEach(circuito => { circuitsContainer.appendChild(createCircuitElement(circuito, eserciziMap)); });
                     noCircuitsMessage.classList.add('hidden');
                 }
 
-            } catch (error) {
-                console.error("Errore nel caricamento dei dati: ", error);
-            } finally {
-                loader.classList.add('hidden');
-                mainContent.classList.remove('hidden');
-            }
+            } catch (error) { console.error("Errore dati:", error); } 
+            finally { loader.classList.add('hidden'); mainContent.classList.remove('hidden'); }
         }
 
-        // --- SCHEDE (Invariato) ---
         function createPlanElement(scheda, massimaliMap, eserciziMap) {
             const details = document.createElement('details');
             details.className = 'plan-card bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg overflow-hidden';
@@ -273,7 +262,6 @@
             content.className = 'p-4 md:p-6 border-t border-slate-700/50';
             const exerciseList = document.createElement('div');
             exerciseList.className = 'space-y-4';
-
             if (scheda.esercizi && scheda.esercizi.length > 0) {
                  const orderedExercises = (scheda.esercizi || []).sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
                 orderedExercises.forEach(esercizio => {
@@ -281,25 +269,22 @@
                     const fullEsercizio = eserciziMap.get(esercizio.esercizioId);
                     const imageUrl = fullEsercizio?.imageUrl || 'https://placehold.co/100x100/334155/e2e8f0?text=IMG';
                     const nomeEsercizio = esercizio.nome || fullEsercizio?.nome || 'Esercizio Sconosciuto';
-                    const notaGeneraleEsercizio = fullEsercizio?.note || '';
-                    const tipoSerie = esercizio.tipo || 'fisse';
-                    const infoHtml = `<p class="font-bold text-lg text-slate-100">${nomeEsercizio}</p>${notaGeneraleEsercizio ? `<p class="text-sm text-slate-400 italic mt-1">${notaGeneraleEsercizio}</p>` : ''}<p class="text-sm font-medium text-indigo-300 mt-2">Tipo: <span class="font-normal capitalize text-slate-300">${tipoSerie}</span></p>`;
+                    const notaGenerale = fullEsercizio?.note || '';
+                    const infoHtml = `<p class="font-bold text-lg text-slate-100">${nomeEsercizio}</p>${notaGenerale ? `<p class="text-sm text-slate-400 italic mt-1">${notaGenerale}</p>` : ''}<p class="text-sm font-medium text-indigo-300 mt-2">Tipo: <span class="font-normal capitalize text-slate-300">${esercizio.tipo || 'fisse'}</span></p>`;
                     let setsHtml = '<div class="space-y-3 mt-3">';
                     if (esercizio.sets && esercizio.sets.length > 0) {
                         esercizio.sets.forEach(set => {
-                            const percentuale = set.percentuale || '-';
-                            const setNoteHtml = set.note ? `<p class="text-xs text-amber-300/80 mt-1 italic pl-2">Nota: ${set.note}</p>` : '';
-                            setsHtml += `<div class="bg-slate-700/50 p-3 rounded-lg"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2"><p class="text-slate-300 font-mono text-sm"><span class="font-bold text-white">${set.serie || '-'}</span> x <span class="font-bold text-white">${set.ripetizioni || '-'}</span></p><div class="flex items-center gap-2 bg-slate-800 p-2 rounded-lg flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12v0Z"></path><path d="M12 13.4a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Z"></path></svg><p class="text-lg font-bold text-white">${percentuale}%</p></div></div>${setNoteHtml}</div>`;
+                            const noteSet = set.note ? `<p class="text-xs text-amber-300/80 mt-1 italic pl-2">Nota: ${set.note}</p>` : '';
+                            setsHtml += `<div class="bg-slate-700/50 p-3 rounded-lg"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2"><p class="text-slate-300 font-mono text-sm"><span class="font-bold text-white">${set.serie || '-'}</span> x <span class="font-bold text-white">${set.ripetizioni || '-'}</span></p><div class="flex items-center gap-2 bg-slate-800 p-2 rounded-lg flex-shrink-0"><span class="text-sky-400 font-bold">${set.percentuale || '-'}%</span></div></div>${noteSet}</div>`;
                         });
                     } else { setsHtml += `<p class="text-slate-400">Dettagli serie non disponibili.</p>`; }
                     setsHtml += '</div>';
-                    exerciseList.innerHTML += `<div class="flex flex-col sm:flex-row items-start gap-4 p-4 bg-slate-800 rounded-lg"><img src="${imageUrl}" class="w-16 h-16 rounded-md object-cover flex-shrink-0 cursor-pointer enlargeable-image sm:mt-1" onerror="this.onerror=null;this.src='https://placehold.co/100x100/ef4444/ffffff?text=Error';"><div class="flex-grow w-full">${infoHtml}${setsHtml}</div></div>`;
+                    exerciseList.innerHTML += `<div class="flex flex-col sm:flex-row items-start gap-4 p-4 bg-slate-800 rounded-lg"><img src="${imageUrl}" class="w-16 h-16 rounded-md object-cover flex-shrink-0 cursor-pointer enlargeable-image sm:mt-1"><div class="flex-grow w-full">${infoHtml}${setsHtml}</div></div>`;
                 });
-            } else { exerciseList.innerHTML = `<p class="text-slate-400">Nessun esercizio in questa scheda.</p>`; }
+            } else { exerciseList.innerHTML = `<p class="text-slate-400">Nessun esercizio.</p>`; }
             content.appendChild(exerciseList); details.appendChild(summary); details.appendChild(content); return details;
         }
         
-        // --- CIRCUITI (MODIFICATO PER TIMER) ---
         function createCircuitElement(circuito, eserciziMap) {
             const details = document.createElement('details');
             details.className = 'plan-card bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg overflow-hidden';
@@ -308,20 +293,12 @@
             summary.innerHTML = `<h3 class="text-xl font-bold text-white">${circuito.nomeCircuito}</h3><div class="icon text-purple-400"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>`;
             const content = document.createElement('div');
             content.className = 'p-4 md:p-6 border-t border-slate-700/50';
-            
-            // Info Timing + Pulsante Start
-            content.innerHTML = `
-                <div class="flex gap-4 mb-4 p-3 bg-slate-800 rounded-lg">
-                    <div class="flex-1 text-center"><p class="text-sm font-medium text-slate-400">LAVORO</p><p class="text-xl font-bold text-white">${circuito.tempoLavoro || 'N/A'}</p></div>
-                    <div class="flex-1 text-center border-l border-slate-600"><p class="text-sm font-medium text-slate-400">RECUPERO</p><p class="text-xl font-bold text-white">${circuito.tempoRecupero || 'N/A'}</p></div>
-                </div>
-            `;
+            content.innerHTML = `<div class="flex gap-4 mb-4 p-3 bg-slate-800 rounded-lg"><div class="flex-1 text-center"><p class="text-sm font-medium text-slate-400">LAVORO</p><p class="text-xl font-bold text-white">${circuito.tempoLavoro || 'N/A'}</p></div><div class="flex-1 text-center border-l border-slate-600"><p class="text-sm font-medium text-slate-400">RECUPERO</p><p class="text-xl font-bold text-white">${circuito.tempoRecupero || 'N/A'}</p></div></div>`;
 
             // Pulsante AVVIA TIMER
             const btn = document.createElement('button');
             btn.className = "w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg shadow-lg mb-4 flex items-center justify-center gap-2 transition-transform active:scale-95";
             btn.innerHTML = `<span class="text-xl">▶</span> <span class="text-lg">AVVIA TIMER</span>`;
-            
             btn.onclick = function(e) {
                 e.preventDefault(); e.stopPropagation();
                 if (!circuito.esercizi || circuito.esercizi.length === 0) return alert("ERRORE: Circuito senza esercizi!");
@@ -329,35 +306,29 @@
             };
             content.appendChild(btn);
 
-            // Lista Esercizi
             const exerciseList = document.createElement('div');
             exerciseList.className = 'space-y-4';
             if (circuito.esercizi && circuito.esercizi.length > 0) {
                 const orderedExercises = (circuito.esercizi || []).sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
                 orderedExercises.forEach(esercizio => {
-                    const fullEsercizio = eserciziMap.get(esercizio.esercizioId);
-                    const imageUrl = fullEsercizio?.imageUrl || 'https://placehold.co/100x100/334155/e2e8f0?text=IMG';
-                    const nomeEsercizio = esercizio.nome || fullEsercizio?.nome || 'Esercizio Sconosciuto';
-                    const notaGeneraleEsercizio = fullEsercizio?.note || '';
-                    const pesoHtml = `Peso: <span class="font-bold text-white">${esercizio.peso || 'N/A'}</span>`;
-                    const noteHtml = esercizio.note ? `<p class="text-sm text-amber-300/80 mt-1 italic">Nota: ${esercizio.note}</p>` : '';
-                    const notaGeneraleHtml = notaGeneraleEsercizio ? `<p class="text-sm text-slate-400 italic mt-1">${notaGeneraleEsercizio}</p>` : '';
-                    exerciseList.innerHTML += `<div class="flex flex-col sm:flex-row items-start gap-4 p-4 bg-slate-800 rounded-lg"><img src="${imageUrl}" alt="${nomeEsercizio}" class="w-16 h-16 rounded-md object-cover flex-shrink-0 cursor-pointer enlargeable-image sm:mt-1" onerror="this.onerror=null;this.src='https://placehold.co/100x100/ef4444/ffffff?text=Error';"><div class="flex-grow w-full"><p class="font-bold text-lg text-purple-300">${nomeEsercizio}</p>${notaGeneraleHtml}<div class="mt-3 bg-slate-700/50 p-3 rounded-lg"><p class="text-slate-300 font-mono text-sm">${pesoHtml}</p>${noteHtml}</div></div></div>`;
+                    const full = eserciziMap.get(esercizio.esercizioId);
+                    const imageUrl = full?.imageUrl || 'https://placehold.co/100x100/334155/e2e8f0?text=IMG';
+                    const nome = esercizio.nome || full?.nome || 'Esercizio Sconosciuto';
+                    const noteGen = full?.note ? `<p class="text-xs text-slate-500 italic mt-0.5">${full.note}</p>` : '';
+                    const specificNote = esercizio.note ? `<p class="text-xs text-amber-400/90 italic mt-1 font-medium">📝 ${esercizio.note}</p>` : '';
+                    const weight = esercizio.peso ? `<span class="inline-block bg-slate-700/50 px-2 py-0.5 rounded text-xs text-purple-300 font-semibold mt-1 border border-purple-500/20">Kg: ${esercizio.peso}</span>` : '';
+                    
+                    exerciseList.innerHTML += `<div class="flex items-start gap-4 bg-slate-800/40 p-3 rounded-lg border border-slate-700/30"><img src="${imageUrl}" class="w-14 h-14 object-cover rounded-md bg-slate-700 flex-shrink-0"><div class="flex-1 min-w-0"><p class="font-bold text-slate-200 text-sm md:text-base">${nome}</p>${noteGen}<div class="flex flex-wrap gap-2 items-center">${weight}</div>${specificNote}</div></div>`;
                 });
-            } else { exerciseList.innerHTML = `<p class="text-slate-400">Nessun esercizio in questo circuito.</p>`; }
-            content.appendChild(exerciseList);
-            details.appendChild(summary); details.appendChild(content);
-            return details;
+            } else { exerciseList.innerHTML = `<p class="text-slate-400">Nessun esercizio.</p>`; }
+            content.appendChild(exerciseList); details.appendChild(summary); details.appendChild(content); return details;
         }
 
-        // --- TIMER LOGIC (Copiata dalla versione Athlete) ---
+        // --- TIMER LOGIC (VOICE + AUDIO) ---
         function parseTime(val) {
             if (!val) return 0;
             let s = String(val).replace(/[^0-9:]/g, ''); 
-            if (s.includes(':')) {
-                const parts = s.split(':');
-                return (parseInt(parts[0])*60) + parseInt(parts[1]);
-            }
+            if (s.includes(':')) { const parts = s.split(':'); return (parseInt(parts[0])*60) + parseInt(parts[1]); }
             return parseInt(s) || 0;
         }
 
@@ -376,9 +347,8 @@
             currentCircuitData = exercises; currentExerciseIndex = 0; isWorkPhase = true; timeLeft = exercises[0].work; isRunning = false;
             updateUI();
             
-            // Show Overlay
-            timerOverlay.style.display = ''; 
-            timerOverlay.classList.remove('hidden'); 
+            // Show Overlay & Request Wake Lock
+            timerOverlay.style.display = ''; timerOverlay.classList.remove('hidden'); 
             if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(e=>console.log(e));
         }
 
@@ -397,50 +367,124 @@
                 timerToggleBtn.className = "bg-amber-600 hover:bg-amber-500 text-white rounded-full h-20 w-20 flex items-center justify-center shadow-lg transform active:scale-95 transition-all border-4 border-amber-600/30";
             }
             timerCountdown.textContent = timeLeft < 10 ? `0${timeLeft}` : timeLeft;
+            
+            // Rimuovi pulsazione se non siamo alla fine
+            if (timeLeft > 3) timerCountdown.classList.remove('pulsing-text');
+
             btnIconPlay.innerHTML = isRunning ? 
                 `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>` : 
                 `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
         }
 
+        // --- CORE TIMER TICK FUNCTION ---
         function tick() {
             const currentTotalTime = isWorkPhase ? currentCircuitData[currentExerciseIndex].work : currentCircuitData[currentExerciseIndex].rest;
-            if (currentTotalTime > 10 && timeLeft === Math.floor(currentTotalTime / 2)) playWarning();
-            if (currentTotalTime > 20 && timeLeft === 15) playWarning();
-            if (timeLeft > 0 && timeLeft <= 3) playTick();
-            
+            const halfTime = Math.floor(currentTotalTime / 2);
+
+            // LOGICA VOCALE RICHIESTA
+            // 1. Metà Tempo (se > 5 secondi totali)
+            if (currentTotalTime > 5 && timeLeft === halfTime && timeLeft > 4) {
+                speak("Metà");
+            }
+            // 2. Venti Secondi
+            else if (timeLeft === 20) {
+                speak("Venti");
+            }
+            // 3. Dieci Secondi
+            else if (timeLeft === 10) {
+                speak("Dieci");
+            }
+            // 4. Countdown Finale (3, 2, 1) CON PRIORITA'
+            else if (timeLeft <= 3 && timeLeft > 0) {
+                timerCountdown.classList.add('pulsing-text'); // Effetto visivo
+                speak(String(timeLeft), true); // true = interrompi altre frasi
+            }
+
             timeLeft--;
+
             if (timeLeft < 0) {
-                clearInterval(timerInterval); playBell();
-                if (isWorkPhase) { isWorkPhase = false; timeLeft = currentCircuitData[currentExerciseIndex].rest; } 
-                else { isWorkPhase = true; currentExerciseIndex = (currentExerciseIndex + 1) % currentCircuitData.length; timeLeft = currentCircuitData[currentExerciseIndex].work; if(currentExerciseIndex===0) alert("Giro completato!"); }
-                updateUI(); timerInterval = setInterval(tick, 1000);
+                clearInterval(timerInterval);
+                
+                // AZIONE FINE FASE
+                playLoudBeep(); // Suono forte
+                timerCountdown.classList.remove('pulsing-text');
+
+                if (isWorkPhase) { 
+                    isWorkPhase = false; 
+                    speak("Stop! Recupero.", true); // Voce
+                    timeLeft = currentCircuitData[currentExerciseIndex].rest; 
+                } else { 
+                    isWorkPhase = true; 
+                    currentExerciseIndex = (currentExerciseIndex + 1) % currentCircuitData.length; 
+                    timeLeft = currentCircuitData[currentExerciseIndex].work; 
+                    speak("Cambio! Via!", true); // Voce per inizio lavoro
+                    if(currentExerciseIndex===0) speak("Giro completato!"); 
+                }
+                
+                updateUI(); 
+                timerInterval = setInterval(tick, 1000);
             } else {
                 timerCountdown.textContent = timeLeft < 10 ? `0${timeLeft}` : timeLeft;
             }
         }
 
         function toggleTimer() {
-            if (isRunning) { clearInterval(timerInterval); isRunning = false; } 
-            else { if(!audioCtx) playTick(); timerInterval = setInterval(tick, 1000); isRunning = true; }
+            if (isRunning) { clearInterval(timerInterval); isRunning = false; speak("Pausa"); } 
+            else { 
+                if(!audioCtx) initAudio(); // Inizializza audio context al primo tocco
+                timerInterval = setInterval(tick, 1000); 
+                isRunning = true; 
+                speak("Pronti? Via!");
+            }
             updateUI();
         }
 
-        // --- AUDIO FUNCTIONS ---
-        function playBell() { try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g),g.connect(audioCtx.destination),o.frequency.setValueAtTime(523.25,t),g.gain.setValueAtTime(.3,t),g.gain.exponentialRampToValueAtTime(.001,t+1.5),o.start(t),o.stop(t+1.5);const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();o2.connect(g2),g2.connect(audioCtx.destination),o2.frequency.setValueAtTime(1046.5,t),g2.gain.setValueAtTime(.1,t),g2.gain.exponentialRampToValueAtTime(.001,t+1),o2.start(t),o2.stop(t+1)}catch(e){} }
-        function playTick() { try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g),g.connect(audioCtx.destination),o.type="square",o.frequency.setValueAtTime(800,t),g.gain.setValueAtTime(.05,t),g.gain.exponentialRampToValueAtTime(.001,t+.05),o.start(t),o.stop(t+.1)}catch(e){} }
-        function playWarning() { try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g),g.connect(audioCtx.destination),o.type="sine",o.frequency.setValueAtTime(1200,t),g.gain.setValueAtTime(.1,t),g.gain.exponentialRampToValueAtTime(.001,t+.1),o.start(t),o.stop(t+.1);const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();o2.connect(g2),g2.connect(audioCtx.destination),o2.type="sine",o2.frequency.setValueAtTime(1200,t+.15),g2.gain.setValueAtTime(.1,t+.15),g2.gain.exponentialRampToValueAtTime(.001,t+.25),o2.start(t+.15),o2.stop(t+.25)}catch(e){} }
+        // --- AUDIO & VOICE ENGINE ---
+        
+        // 1. Sintesi Vocale
+        function speak(text, priority = false) {
+            if (!('speechSynthesis' in window)) return;
+            
+            // Se priorità alta (countdown/stop), cancella coda precedente
+            if (priority) window.speechSynthesis.cancel(); 
 
-        // --- EVENT LISTENERS ---
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'it-IT'; 
+            utterance.rate = 1.2; // Ritmo incalzante
+            utterance.pitch = 1.0; 
+            utterance.volume = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 2. Oscillatore (Beep) per impatto forte
+        function initAudio() {
+             try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+        }
+
+        function playLoudBeep() { 
+            try {
+                if(!audioCtx) initAudio();
+                const t = audioCtx.currentTime;
+                // Onda a dente di sega (aggressiva)
+                const osc = audioCtx.createOscillator(); osc.type = 'sawtooth';
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                
+                // Sirena discendente rapida
+                osc.frequency.setValueAtTime(800, t);
+                osc.frequency.exponentialRampToValueAtTime(100, t + 0.6);
+                
+                gain.gain.setValueAtTime(0.8, t); 
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+                
+                osc.start(t); osc.stop(t + 0.6);
+            } catch(e) {} 
+        }
+
+        // --- EVENT HANDLERS ---
         timerToggleBtn.onclick = toggleTimer;
         timerSkipBtn.onclick = () => { timeLeft=0; tick(); };
-        
-        closeTimerBtn.onclick = () => { 
-            clearInterval(timerInterval); 
-            isRunning = false; 
-            timerOverlay.classList.add('hidden'); 
-            timerOverlay.style.display = 'none'; 
-        };
-
+        closeTimerBtn.onclick = () => { clearInterval(timerInterval); isRunning = false; timerOverlay.classList.add('hidden'); timerOverlay.style.display = 'none'; window.speechSynthesis.cancel(); };
         function openImageLightbox(src) { lightboxImage.src = src; imageLightbox.classList.remove('hidden'); setTimeout(() => imageLightbox.classList.remove('opacity-0'), 10); }
         function closeImageLightbox() { imageLightbox.classList.add('opacity-0'); setTimeout(() => { imageLightbox.classList.add('hidden'); lightboxImage.src = ''; }, 300); }
         mainContent.addEventListener('click', (e) => { if (e.target.classList.contains('enlargeable-image')) openImageLightbox(e.target.src); });
