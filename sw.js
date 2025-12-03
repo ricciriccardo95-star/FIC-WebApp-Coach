@@ -4,7 +4,7 @@
 // MODIFICA CHIAVE: Versione v1.7
 // Nuova strategia: "Network falling back to Cache"
 // Aggiunto self.skipWaiting() e self.clients.claim() per aggiornamenti più rapidi.
-const CACHE_NAME = 'fic-coach-cache-v1.10';
+const CACHE_NAME = 'fic-coach-cache-v1.11';
 
 // 2. Elenco dei file fondamentali da salvare in cache.
 const urlsToCache = [
