@@ -1,16 +1,15 @@
 // --- FILE SERVICE WORKER (sw.js) ---
 // Questo file gestisce la cache e l'aggiornamento della PWA.
 
-// MODIFICA CHIAVE: Versione v1.7
-// Nuova strategia: "Network falling back to Cache"
-// Aggiunto self.skipWaiting() e self.clients.claim() per aggiornamenti più rapidi.
-const CACHE_NAME = 'fic-coach-cache-v1.14';
+// MODIFICA CHIAVE: Versione Incrementata per forzare l'aggiornamento
+const CACHE_NAME = 'fic-coach-cache-v1.15'; 
 
 // 2. Elenco dei file fondamentali da salvare in cache.
 const urlsToCache = [
   '/',
   'index.html', 
   'coach_home.html',
+  'EFFICIENZA/efficienza_coach.html', // <--- PERCORSO AGGIORNATO CON LA CARTELLA
   'manifest.json',
   'images/logo.png',
   'images/COACH R4P (192).png',
@@ -24,64 +23,64 @@ const urlsToCache = [
 
 // 3. Evento 'install': si attiva quando il Service Worker viene installato.
 self.addEventListener('install', event => {
+  // Forza l'attivazione immediata del nuovo SW senza aspettare la chiusura dei tab
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Cache v1.7 aperta, installazione...');
+        console.log('Cache aperta, installazione file...');
         return cache.addAll(urlsToCache);
       })
-      .then(() => {
-        // Forza il nuovo Service Worker ad attivarsi subito
-        return self.skipWaiting();
-      })
       .catch(err => {
-        console.error('Impossibile aggiungere i file alla cache v1.7:', err);
+        console.error('Errore durante il caching dei file:', err);
       })
   );
 });
 
-// 4. Evento 'activate': si attiva quando il nuovo Service Worker prende il controllo.
+// 4. Evento 'activate': Pulizia delle vecchie cache.
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME]; // Mantiene solo la cache v1.7
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // Se la cache non è nella "lista bianca" (cioè è vecchia, es. v1.6), la cancelliamo.
+          // Se il nome della cache è diverso da quello attuale (es. v1.14), cancellalo.
+          if (cacheName !== CACHE_NAME) {
             console.log('Cancellazione vecchia cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      // Prende il controllo immediato di tutte le pagine aperte
+      // Prende il controllo immediato della pagina
       return self.clients.claim();
     })
   );
 });
 
-// 5. Evento 'fetch': si attiva ogni volta che l'app chiede un file.
-// NUOVA STRATEGIA: Network falling back to Cache
+// 5. Evento 'fetch': Strategia Network falling back to Cache
 self.addEventListener('fetch', event => {
+  // Ignora richieste non GET (es. POST a Firebase) o estensioni browser
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+    return;
+  }
+
   event.respondWith(
-    // 1. Prova prima la Rete
     fetch(event.request)
       .then(networkResponse => {
-        // 2. Rete OK: Aggiorna la cache e restituisci la risposta fresca
-        return caches.open(CACHE_NAME).then(cache => {
-          // Non memorizziamo richieste non-GET (es. POST a Firebase)
-          if (event.request.method === 'GET') {
-             cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
+        // Se la rete risponde, aggiorniamo la cache con la versione fresca
+        // Clona la risposta perché il body può essere letto una sola volta
+        const responseClone = networkResponse.clone();
+        
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, responseClone);
         });
+        
+        return networkResponse;
       })
       .catch(() => {
-        // 3. Rete Fallita: Prova a prendere la versione in Cache
-        return caches.match(event.request).then(cachedResponse => {
-          return cachedResponse; // Restituisce il file in cache (o undefined se non c'è)
-        });
+        // Se la rete fallisce (offline), serviamo il file dalla cache
+        return caches.match(event.request);
       })
   );
 });
