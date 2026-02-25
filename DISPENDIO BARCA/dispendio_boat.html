@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcolatore Dispendio (EP) - Allenatori</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0F172A; color: #E2E8F0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .background-gradient { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); filter: blur(100px); z-index: -1; }
+        .gradient-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(59, 130, 246, 0.3), transparent 70%); animation: pulse 10s infinite alternate; }
+        .gradient-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(16, 185, 129, 0.2), transparent 70%); animation: pulse 12s infinite alternate-reverse; }
+        @keyframes pulse { 0% { transform: scale(0.9) rotate(0deg); } 100% { transform: scale(1.2) rotate(20deg); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loader { border-top-color: #3B82F6; animation: spin 1s linear infinite; }
+        .form-input, .form-select { width: 100%; background-color: #1E293B; border: 1px solid #334155; border-radius: 0.5rem; padding: 0.75rem 1rem; color: #E2E8F0; font-size: 1.125rem;}
+        .form-input:focus, .form-select:focus { outline: none; border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); }
+        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #94A3B8; }
+        
+        .form-select {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%2394a3b8"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
+            background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.25em; padding-right: 2.5rem;
+        }
+    </style>
+    <script type="module" src="../auth-manager-coach.js"></script>
+</head>
+<body class="antialiased">
+    <div class="background-gradient gradient-1"></div>
+    <div class="background-gradient gradient-2"></div>
+    
+    <div id="loader-overlay" class="fixed inset-0 bg-slate-900/80 flex flex-col justify-center items-center z-50">
+        <div class="loader h-16 w-16 animate-spin rounded-full border-4 border-t-4 border-slate-600"></div>
+        <p class="mt-4 text-slate-300">Verifica accesso...</p>
+    </div>
+    
+    <div class="p-4 md:p-8 max-w-2xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-black tracking-tight text-slate-100 text-center mb-2">Calcolatore EP</h1>
+        <p class="text-center text-slate-400 mb-8">Strumento rapido per Allenatori</p>
+        
+        <div class="bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg p-6 md:p-8 space-y-6 shadow-2xl">
+            
+            <div id="form-content" class="space-y-6 hidden">
+                
+                <div>
+                    <label for="boatTypeSelect" class="form-label flex items-center gap-2">
+                        <span>Imbarcazione</span>
+                        <span id="gender-indicator"></span>
+                    </label>
+                    <select id="boatTypeSelect" class="form-select"></select>
+                </div>
+
+                <div>
+                    <label for="distanzaInput" class="form-label">Distanza Totale (metri)</label>
+                    <input type="number" id="distanzaInput" inputmode="numeric" class="form-input" placeholder="es. 2000">
+                </div>
+
+                <div>
+                    <label for="tempoInput" class="form-label">Tempo Totale</label>
+                    <input type="text" id="tempoInput" inputmode="numeric" class="form-input font-mono text-center tracking-wider text-xl" placeholder="mm:ss.d" oninput="formatTimeInput(event)">
+                    <p class="text-xs text-slate-500 mt-2">Scrivi i numeri di fila (es. per 5:30.5 digita 05305).</p>
+                </div>
+
+                <div class="pt-4">
+                    <button id="calculateBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-5 rounded-lg transition-colors shadow-lg text-lg">
+                        Calcola Dispendio
+                    </button>
+                </div>
+
+                <div id="resultContainer" class="hidden mt-6 p-6 bg-slate-800 border border-slate-600 rounded-xl text-center">
+                    <p class="text-slate-400 font-medium mb-1">Dispendio Calcolato (EP)</p>
+                    <p id="resultEP" class="text-5xl font-black text-white"></p>
+                    
+                    <div id="warningMsg" class="hidden mt-4 text-sm text-red-400 bg-red-900/30 p-2 rounded">
+                        Attenzione: Valore fuori scala (>110%). Verifica i dati inseriti.
+                    </div>
+                </div>
+
+            </div> 
+        </div>
+
+        <div class="text-center mt-8">
+            <a href="../coach_home.html" class="inline-block bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors">
+                ← Torna alla Home
+            </a>
+        </div>
+    </div>
+    
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+    <div id="messageBox" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-slate-800 border border-slate-700 rounded-lg p-6 shadow-xl text-center hidden z-50">
+        <p id="messageText" class="mb-6 text-lg text-white"></p>
+        <button id="messageBoxOkBtn" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg">Chiudi</button>
+    </div>
+
+    <script type="module">
+        // Record mondiali hardcoded
+        const worldRecords = {
+            "M1X": "06:30.74",
+            "M2X": "05:59.70",
+            "M4X": "05:32.50",
+            "M2-": "06:08.50",
+            "M4-": "05:38.00",
+            "M8+": "05:18.68",
+            "W1X": "07:07.71",
+            "W2X": "06:37.31",
+            "W4X": "06:06.84",
+            "W2-": "06:47.41",
+            "W4-": "06:14.36",
+            "W8+": "05:52.99"
+        };
+
+        // --- UTILS ---
+        const showModal = (modal) => { document.getElementById('modal-backdrop').classList.remove('hidden'); modal.classList.remove('hidden'); };
+        const hideModal = (modal) => { document.getElementById('modal-backdrop').classList.add('hidden'); modal.classList.add('hidden'); };
+        const showMessageBox = (msg) => { document.getElementById('messageText').textContent = msg; showModal(document.getElementById('messageBox')); };
+
+        // Funzione per trasformare la stringa tempo (es. "06:30.74") in secondi
+        function timeToSeconds(timeStr) {
+            if (!timeStr || !timeStr.includes(':')) return 0;
+            const parts = timeStr.split(':');
+            const min = parseInt(parts[0], 10);
+            const sec = parseFloat(parts[1]); 
+            return isNaN(min) || isNaN(sec) ? 0 : (min * 60) + sec;
+        }
+
+        // --- FORMATTAZIONE AUTOMATICA INPUT TEMPO ---
+        window.formatTimeInput = function(e) {
+            // Tieni solo i numeri
+            let v = e.target.value.replace(/[^\d]/g, '');
+            
+            // Limita a 5 cifre (mm ss d)
+            if (v.length > 5) v = v.substring(0, 5);
+            
+            let formatted = '';
+            if (v.length > 0) formatted += v.substring(0, 2); // mm
+            if (v.length > 2) formatted += ':' + v.substring(2, 4); // :ss
+            if (v.length > 4) formatted += '.' + v.substring(4, 5); // .d
+            
+            e.target.value = formatted;
+        }
+
+        // --- SETUP INIZIALE UI ---
+        function setupPage() {
+            const bSelect = document.getElementById('boatTypeSelect');
+            bSelect.innerHTML = '<option value="">-- Seleziona Barca --</option>';
+            
+            // Popola la select iterando sulle chiavi dei record mondiali
+            Object.keys(worldRecords).forEach(b => {
+                bSelect.innerHTML += `<option value="${b}">${b}</option>`;
+            });
+
+            bSelect.addEventListener('change', (e) => {
+                const v = e.target.value;
+                const ind = document.getElementById('gender-indicator');
+                if(v.startsWith('M')) ind.innerHTML = '<div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">M</div>';
+                else if(v.startsWith('W')) ind.innerHTML = '<div class="w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-sm">F</div>';
+                else ind.innerHTML = '';
+            });
+        }
+
+        // --- CALCOLO EP ---
+        function calculateEP() {
+            const boatType = document.getElementById('boatTypeSelect').value;
+            const distance = parseInt(document.getElementById('distanzaInput').value, 10);
+            const timeStr = document.getElementById('tempoInput').value;
+            const resultContainer = document.getElementById('resultContainer');
+            const resultEP = document.getElementById('resultEP');
+            const warningMsg = document.getElementById('warningMsg');
+
+            resultContainer.classList.add('hidden');
+
+            // Validazioni base
+            if (!boatType) return showMessageBox("Seleziona il tipo di imbarcazione.");
+            if (isNaN(distance) || distance <= 0) return showMessageBox("Inserisci una distanza valida in metri.");
+            if (timeStr.length < 5 || !/^\d{2}:\d{2}\.\d{1}$/.test(timeStr)) {
+                return showMessageBox("Il formato del tempo deve essere completo (mm:ss.d).");
+            }
+
+            // Recupera il Record del Mondo dall'oggetto locale
+            const wrTime = worldRecords[boatType];
+            if (!wrTime) {
+                return showMessageBox(`Nessun World Record trovato per la barca ${boatType}.`);
+            }
+
+            const wrSec = timeToSeconds(wrTime);
+            const workoutSec = timeToSeconds(timeStr);
+
+            if (wrSec <= 0 || workoutSec <= 0) return showMessageBox("Errore nel calcolo dei secondi. Verifica il formato del tempo.");
+
+            // Formule Dispendio (Watt basati su split 500m / velocità cubica)
+            const wattWR = 2.8 * Math.pow(2000 / wrSec, 3);
+            const wattWorkout = 2.8 * Math.pow(distance / workoutSec, 3);
+            
+            const ep = (wattWorkout / wattWR) * 100;
+
+            // Mostra i risultati
+            resultEP.textContent = ep.toFixed(2) + '%';
+            
+            // Colora il testo in base all'intensità
+            resultEP.className = 'text-5xl font-black mt-2 ';
+            if (ep > 110) { resultEP.classList.add('text-red-500'); warningMsg.classList.remove('hidden'); }
+            else if (ep > 90) { resultEP.classList.add('text-orange-400'); warningMsg.classList.add('hidden'); }
+            else if (ep > 75) { resultEP.classList.add('text-green-400'); warningMsg.classList.add('hidden'); }
+            else { resultEP.classList.add('text-blue-400'); warningMsg.classList.add('hidden'); }
+
+            resultContainer.classList.remove('hidden');
+        }
+
+        // Event Listeners
+        document.getElementById('calculateBtn').addEventListener('click', calculateEP);
+        document.getElementById('messageBoxOkBtn').addEventListener('click', () => hideModal(document.getElementById('messageBox')));
+
+        // Avvio Script - in ascolto sull'autenticazione del Coach
+        document.addEventListener('coachAuthStateReady', async (e) => {
+            setupPage();
+            document.getElementById('loader-overlay').style.display = 'none';
+            document.getElementById('form-content').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
