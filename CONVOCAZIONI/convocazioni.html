@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="it" class="h-full">
 <head>
@@ -10,43 +9,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
     
-    <!-- 
-      MODIFICA:
-      1. Aggiunto auth-manager-coach.js (con percorso ../)
-    -->
     <script type="module" src="../auth-manager-coach.js"></script>
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0F172A; /* Slate 900 */
-            color: #E2E8F0; /* Slate 200 */
-        }
-        .background-gradient {
-            position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            filter: blur(100px);
-            z-index: -1;
-        }
-        .gradient-1 {
-            width: 500px; height: 500px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.3), transparent 70%);
-            animation: pulse 10s infinite alternate;
-        }
-        .gradient-2 {
-            width: 400px; height: 400px;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 70%);
-            animation: pulse 12s infinite alternate-reverse;
-        }
-        @keyframes pulse {
-            0% { transform: scale(0.9) rotate(0deg); }
-            100% { transform: scale(1.2) rotate(20deg); }
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #0F172A; color: #E2E8F0; }
+        .background-gradient { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); filter: blur(100px); z-index: -1; }
+        .gradient-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(59, 130, 246, 0.3), transparent 70%); animation: pulse 10s infinite alternate; }
+        .gradient-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 70%); animation: pulse 12s infinite alternate-reverse; }
+        @keyframes pulse { 0% { transform: scale(0.9) rotate(0deg); } 100% { transform: scale(1.2) rotate(20deg); } }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loader {
-            border-top-color: #3498db;
-            animation: spin 1s linear infinite;
-        }
+        .loader { border-top-color: #3498db; animation: spin 1s linear infinite; }
     </style>
 </head>
 <body class="antialiased" style="visibility: hidden;">
@@ -61,95 +33,150 @@
         <p id="loader-text" class="mt-4 text-slate-300">Caricamento convocazioni...</p>
     </div>
 
-    <div class="p-4 md:p-8 max-w-7xl mx-auto">
+    <div class="p-4 md:p-8 max-w-3xl mx-auto">
         
-        <div class="flex justify-between items-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-black tracking-tight text-slate-100">
-                Convocazioni
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-black tracking-tight text-slate-100">
+                Comunicazioni
             </h1>
             <a href="../coach_home.html" class="inline-block bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
                 ← Home
             </a>
         </div>
 
-        <div class="bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg p-6">
-            <h2 class="text-2xl font-bold text-white mb-6 border-b border-slate-700 pb-4">Elenco Documenti</h2>
+        <div class="bg-slate-900/70 border border-slate-700/50 rounded-xl backdrop-blur-lg p-4 sm:p-6">
+            <p class="text-slate-400 mb-6 text-sm sm:text-base">Tocca una cartella per visualizzare i documenti al suo interno.</p>
+            
             <div id="pdf-list-container" class="space-y-4">
-                <p id="loading-message" class="text-slate-400 text-center py-4">Caricamento elenco...</p>
+                <p id="loading-message" class="text-slate-400 text-center py-4">Caricamento in corso...</p>
             </div>
         </div>
 
     </div> 
     
     <script type="module">
-        // --- MODIFICA: Importa 'db' dal manager ---
-        // (db si riferisce al progetto 'database-atleti-fic')
         import { db } from "../auth-manager-coach.js";
-        
-        // --- MODIFICA: Rimosse importazioni auth ---
-        // Rimosso: initializeApp, getAuth, onAuthStateChanged, firebaseConfig, app, auth
-        
-        import { getFirestore, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const loaderOverlay = document.getElementById('loader-overlay');
         const pdfListContainer = document.getElementById('pdf-list-container');
         
-        // --- MODIFICA: Sostituito onAuthStateChanged con listener per 'coachAuthStateReady' ---
         document.addEventListener('coachAuthStateReady', (e) => {
             const { coach, error } = e.detail;
-
             if (coach) {
-                // Utente loggato, mostra la pagina e carica i PDF
                 document.body.style.visibility = 'visible';
                 loadPDFs();
-            } else {
-                // Non loggato, auth-manager-coach.js ha già gestito il redirect
-                console.log("Utente non loggato, redirect in corso...");
             }
         });
 
-        /**
-         * Funzione per caricare i PDF (invariata, ma ora chiamata dal listener)
-         */
+        // Gestione apertura/chiusura dei menu a tendina
+        pdfListContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.accordion-btn');
+            if (btn) {
+                const content = btn.nextElementSibling;
+                const toggleSymbol = btn.querySelector('.toggle-symbol');
+                
+                content.classList.toggle('hidden');
+                
+                // Cambia il simbolo tra + e -
+                if (content.classList.contains('hidden')) {
+                    toggleSymbol.textContent = '+';
+                } else {
+                    toggleSymbol.textContent = '-';
+                }
+            }
+        });
+
         async function loadPDFs() {
-            // 'db' è ora importato dal manager.
-            // La collezione 'convocazioni' deve esistere nel progetto 'database-atleti-fic'.
-            const q = query(collection(db, "convocazioni"), orderBy("createdAt", "desc"));
+            const q = query(collection(db, "convocazioni"));
 
             try {
                 const snapshot = await getDocs(q);
                 pdfListContainer.innerHTML = ''; 
+                
                 if (snapshot.empty) {
-                    pdfListContainer.innerHTML = `<p class="text-slate-400 text-center py-4">Al momento non ci sono convocazioni.</p>`;
+                    pdfListContainer.innerHTML = `<p class="text-slate-400 text-center py-4">Nessun documento disponibile.</p>`;
                     loaderOverlay.classList.add('hidden');
                     return;
                 }
+
+                const groupedByFolder = {};
+
                 snapshot.docs.forEach(doc => {
                     const data = doc.data();
-                    const date = data.createdAt ? data.createdAt.toDate().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Data non disp.';
-                    const fileName = data.fileName || `${data.titolo.replace(/\s+/g, '_') || 'convocazione'}.pdf`; 
-                    const docWrapper = document.createElement('div');
-                    docWrapper.className = 'group block bg-slate-800 p-4 rounded-lg transition-all duration-300 hover:bg-slate-700/60 hover:shadow-lg border border-transparent';
-                    docWrapper.innerHTML = `
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                            <div class="mb-3 sm:mb-0">
-                                <p class="font-bold text-lg text-blue-300">${data.titolo}</p>
-                                <p class="text-sm text-slate-400">Pubblicato il: ${date}</p>
-                            </div>
-                            <div class="flex-shrink-0 flex items-center gap-3">
-                                <a href="${data.url}" target="_blank" class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                    <span>Visualizza</span>
-                                </a>
-                                <a href="${data.url}" download="${fileName}" target="_blank" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                    <span>Scarica</span>
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                    pdfListContainer.appendChild(docWrapper);
+                    const folderName = data.cartella || 'Generale';
+                    
+                    if (!groupedByFolder[folderName]) {
+                        groupedByFolder[folderName] = [];
+                    }
+                    groupedByFolder[folderName].push(data);
                 });
+
+                Object.keys(groupedByFolder).sort().forEach(folderName => {
+                    
+                    const files = groupedByFolder[folderName];
+                    files.sort((a, b) => {
+                        const ordA = a.ordine !== undefined ? a.ordine : 0;
+                        const ordB = b.ordine !== undefined ? b.ordine : 0;
+                        if (ordA !== ordB) return ordA - ordB;
+                        const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+                        const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+                        return timeB - timeA; 
+                    });
+
+                    const realFiles = files.filter(f => !f.isPlaceholder);
+
+                    const folderWrapper = document.createElement('div');
+                    folderWrapper.className = 'bg-slate-800 border border-slate-700 rounded-xl overflow-hidden';
+                    
+                    // Header della cartella: testo e un "+" sulla destra
+                    const folderHeader = `
+                        <button class="accordion-btn w-full flex justify-between items-center p-4 bg-slate-800 hover:bg-slate-700/80 transition-colors focus:outline-none text-left">
+                            <div>
+                                <h3 class="font-bold text-lg text-white">${folderName}</h3>
+                                <p class="text-xs text-slate-400">${realFiles.length} document${realFiles.length === 1 ? 'o' : 'i'}</p>
+                            </div>
+                            <span class="toggle-symbol text-slate-400 font-bold text-2xl leading-none">+</span>
+                        </button>
+                    `;
+
+                    let filesContent = `<div class="accordion-content hidden p-3 sm:p-4 bg-slate-900/50 space-y-3 border-t border-slate-700">`;
+                    
+                    if (realFiles.length === 0) {
+                        filesContent += `<p class="text-slate-500 italic text-center py-2">Nessun documento in questa cartella.</p>`;
+                    } else {
+                        realFiles.forEach(fileData => {
+                            const date = fileData.createdAt ? fileData.createdAt.toDate().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Data non disp.';
+                            
+                            // --- FIX APPLICATO QUI ---
+                            const titoloSicuro = fileData.titolo || 'Documento';
+                            const fileName = fileData.fileName || `${titoloSicuro.replace(/\s+/g, '_')}.pdf`;
+                            
+                            // Bottoni solo testuali
+                            filesContent += `
+                                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 shadow-sm flex flex-col gap-4">
+                                    <div>
+                                        <p class="font-bold text-blue-300 text-lg leading-tight">${titoloSicuro}</p>
+                                        <p class="text-sm text-slate-400 mt-1">Caricato il: ${date}</p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <a href="${fileData.url || '#'}" target="_blank" class="flex-1 text-center bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm sm:text-base">
+                                            Visualizza
+                                        </a>
+                                        <a href="${fileData.url || '#'}" download="${fileName}" target="_blank" class="flex-1 text-center bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm sm:text-base">
+                                            Scarica
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    filesContent += `</div>`;
+
+                    folderWrapper.innerHTML = folderHeader + filesContent;
+                    pdfListContainer.appendChild(folderWrapper);
+                });
+
                 loaderOverlay.classList.add('hidden');
             } catch (error) {
                 console.error("Errore nel caricamento Firestore: ", error);
