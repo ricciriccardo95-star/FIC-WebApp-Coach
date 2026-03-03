@@ -1,16 +1,11 @@
 // File: auth-manager-coach.js
 // Gestore di autenticazione centralizzato per l'app COACH.
-// AGGIUNTO: Recupero del campo 'societa' da Firestore.
-// MODIFICATO: Aggiornato a reCAPTCHA Enterprise.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// *** 1. MODIFICATO IMPORT PER APP CHECK ENTERPRISE ***
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 
-// Configurazione (la stessa di index.html)
 const firebaseConfig = {
     apiKey: "AIzaSyAQ_0F8KCks_4Wn2h2aTIepQY9VrIkWpUQ",
     authDomain: "database-atleti-fic.firebaseapp.com",
@@ -21,24 +16,17 @@ const firebaseConfig = {
     appId: "1:860422140545:web:cd14c042a47f2650681380"
 };
 
-// Inizializza Firebase ED ESPORTA le istanze per l'uso in altri moduli
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// *** 2. INIZIALIZZA APP CHECK (VERSIONE ENTERPRISE) ***
 const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider('6LdySxgsAAAAAOPjpX_oQPGTAJoqxJTNe9758JE0'),
   isTokenAutoRefreshEnabled: true
 });
 
-
 const CACHE_KEY = 'currentCoach';
 
-/**
- * Funzione globale per ottenere i dati del coach dalla cache (localStorage).
- * @returns {Object | null} I dati del coach (id, cognome, email, societa) o null.
- */
 window.getCurrentCoach = () => {
     const coachData = localStorage.getItem(CACHE_KEY);
     try {
@@ -50,35 +38,25 @@ window.getCurrentCoach = () => {
     }
 };
 
-/**
- * Funzione globale per eseguire il logout.
- */
 window.appLogout = () => {
     console.log("AuthManager: Esecuzione di appLogout()...");
     signOut(auth).catch((error) => {
         console.error('AuthManager: Logout Error', error);
     });
-    // onAuthStateChanged gestirà la pulizia e il redirect
 };
 
-/**
- * Funzione helper per determinare se ci si trova su una pagina di login.
- */
 const isLoginPage = () => {
     const path = window.location.pathname;
     const normalizedPath = path.toLowerCase();
     
-    // Controlla se il path finisce con /index.html
     if (normalizedPath.endsWith('/index.html')) {
         return true;
     }
     
-    // Controlla se siamo nella root (es. /WEB APP COACH/)
     const segments = normalizedPath.split('/').filter(Boolean); 
     if (segments.length === 1 && !segments[0].endsWith('.html')) {
         return true;
     }
-     // Se non ci sono segmenti (root assoluta, es. http://127.0.0.1/), è la pagina di login
     if (segments.length === 0) {
         return true;
     }
@@ -86,11 +64,6 @@ const isLoginPage = () => {
     return false;
 };
 
-
-/**
- * Gestore di autenticazione centrale.
- * Viene eseguito una volta al caricamento di QUALSIASI pagina.
- */
 const authStateManager = async () => {
     console.log("AuthManager: Avviato.");
     try {
@@ -101,28 +74,29 @@ const authStateManager = async () => {
             let error = null;
 
             if (user && user.email) {
-                // --- UTENTE CON EMAIL LOGGATO ---
                 console.log("AuthManager: Utente LOGGATO rilevato.", user.email);
-                coach = window.getCurrentCoach(); // Prova a leggere dalla cache
+                coach = window.getCurrentCoach();
 
-                // Controlliamo se in cache ci sono tutti i dati necessari (inclusa societa)
-                if (!coach || coach.email !== user.email || !coach.societa) {
+                // MODIFICA: Controlliamo anche che "vedeOlimpica" non sia undefined, 
+                // così forziamo l'aggiornamento della cache per chi era già loggato
+                if (!coach || coach.email !== user.email || !coach.societa || coach.vedeOlimpica === undefined) {
                     console.log("AuthManager: Dati coach mancanti o incompleti in cache. Recupero da Firestore...");
                     try {
-                        // Cerca nella collezione 'allenatori' usando l'UID
                         const docRef = doc(db, "allenatori", user.uid);
                         const docSnap = await getDoc(docRef);
 
                         if (docSnap.exists()) {
                             const coachData = docSnap.data();
                             
-                            // Costruisce l'oggetto coach con i campi richiesti
+                            // MODIFICA: Aggiunto vedeOlimpica all'oggetto salvato in cache
                             coach = {
                                 id: docSnap.id,
-                                nome: coachData.nome || '',         // Aggiunto per completezza
+                                nome: coachData.nome || '',         
                                 cognome: coachData.cognome || 'Coach', 
-                                societa: coachData.societa || '',   // AGGIUNTO: Campo societa
-                                email: user.email
+                                societa: coachData.societa || '',   
+                                email: user.email,
+                                // Se il campo non c'è nel database, per sicurezza mettiamo false
+                                vedeOlimpica: coachData.vedeOlimpica === true 
                             };
                             
                             localStorage.setItem(CACHE_KEY, JSON.stringify(coach));
@@ -142,23 +116,20 @@ const authStateManager = async () => {
                     }
                 }
 
-                // Reindirizzamento DOPO aver gestito i dati
                 if (isLoginPage()) {
                     console.log("AuthManager: Utente loggato su pagina di login. Reindirizzo a coach_home.html...");
                     window.location.href = 'coach_home.html';
                     return; 
                 }
                 
-                // Invia l'evento
                 console.log("AuthManager: Invio evento 'coachAuthStateReady' (LOGGATO)");
                 document.dispatchEvent(new CustomEvent('coachAuthStateReady', {
                     detail: { coach: coach, error: null }
                 }));
 
             } else {
-                // --- UTENTE NON LOGGATO O ANONIMO ---
                 console.log("AuthManager: Utente NON LOGGATO rilevato.");
-                localStorage.removeItem(CACHE_KEY); // Pulisci la cache
+                localStorage.removeItem(CACHE_KEY); 
 
                 if (!isLoginPage()) {
                     console.log("AuthManager: Utente non loggato su pagina protetta. Reindirizzo a index.html...");
@@ -179,7 +150,6 @@ const authStateManager = async () => {
                     return;
                 }
                 
-                // Invia l'evento sulla pagina di login 
                 console.log("AuthManager: Invio evento 'coachAuthStateReady' (SLOGGATO)");
                 document.dispatchEvent(new CustomEvent('coachAuthStateReady', {
                     detail: { coach: null, error: error } 
@@ -195,5 +165,4 @@ const authStateManager = async () => {
     }
 };
 
-// Avvia il gestore di autenticazione
 authStateManager();
