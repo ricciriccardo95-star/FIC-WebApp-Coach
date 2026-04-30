@@ -79,7 +79,7 @@ const authStateManager = async () => {
 
                 // MODIFICA: Controlliamo anche che "vedeOlimpica" non sia undefined, 
                 // così forziamo l'aggiornamento della cache per chi era già loggato
-                if (!coach || coach.email !== user.email || !coach.societa || coach.vedeOlimpica === undefined) {
+                if (!coach || coach.email !== user.email || !coach.societa || coach.vedeOlimpica === undefined || coach.vedeBeach === undefined) {
                     console.log("AuthManager: Dati coach mancanti o incompleti in cache. Recupero da Firestore...");
                     try {
                         const docRef = doc(db, "allenatori", user.uid);
@@ -91,12 +91,13 @@ const authStateManager = async () => {
                             // MODIFICA: Aggiunto vedeOlimpica all'oggetto salvato in cache
                             coach = {
                                 id: docSnap.id,
-                                nome: coachData.nome || '',         
-                                cognome: coachData.cognome || 'Coach', 
-                                societa: coachData.societa || '',   
+                                nome: coachData.nome || '',
+                                cognome: coachData.cognome || 'Coach',
+                                societa: coachData.societa || '',
                                 email: user.email,
                                 // Se il campo non c'è nel database, per sicurezza mettiamo false
-                                vedeOlimpica: coachData.vedeOlimpica === true 
+                                vedeOlimpica: coachData.vedeOlimpica === true,
+                                vedeBeach: coachData.vedeBeach === true
                             };
                             
                             localStorage.setItem(CACHE_KEY, JSON.stringify(coach));
