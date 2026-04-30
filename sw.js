@@ -2,7 +2,7 @@
 // Questo file gestisce la cache e l'aggiornamento della PWA.
 
 // MODIFICA CHIAVE: Versione Incrementata per forzare l'aggiornamento
-const CACHE_NAME = 'fic-coach-cache-v1.22'; 
+const CACHE_NAME = 'fic-coach-cache-v1.23'; 
 
 // 2. Elenco dei file fondamentali da salvare in cache.
 const urlsToCache = [
