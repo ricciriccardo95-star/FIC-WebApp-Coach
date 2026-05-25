@@ -94,7 +94,7 @@
                 </a>
                 <a href="DISPENDIO/dispendi.html" class="flex items-center space-x-4 text-slate-300 hover:text-white hover:bg-slate-800 p-3 rounded-lg transition-colors">
                     <svg class="w-6 h-6 text-purple-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" x2="16" y1="6" y2="6"></line><line x1="12" x2="12" y1="10" y2="18"></line><line x1="8" x2="16" y1="14" y2="14"></line></svg>
-                    <span class="font-medium">Dispendio ()</span>
+                    <span class="font-medium">Dispendio (Peso)</span>
                 </a>
                 <a href="DISPENDIO BARCA/dispendio_boat.html" class="flex items-center space-x-4 text-slate-300 hover:text-white hover:bg-slate-800 p-3 rounded-lg transition-colors">
                     <svg class="w-6 h-6 text-sky-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
@@ -209,7 +209,7 @@
                             </svg>
                         </div>
                         <h2 class="text-xl md:text-4xl font-bold text-white">Dispendio</h2>
-                        <p class="text-slate-400 mt-2 text-sm md:text-base">(Indoor)</p>
+                        <p class="text-slate-400 mt-2 text-sm md:text-base">(Peso)</p>
                     </a>
 
                     <a href="DISPENDIO BARCA/dispendio_boat.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
@@ -264,6 +264,20 @@
                         <p class="text-slate-400 mt-2 text-sm md:text-base">Analisi tecnica</p>
                     </a>
 
+                    <a id="misure-card" href="MISURE/misure_coach.html" class="nav-card hidden col-span-2 bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="icon-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 md:w-16 md:h-16 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"></path>
+                                <path d="m14.5 12.5 2-2"></path>
+                                <path d="m11.5 9.5 2-2"></path>
+                                <path d="m8.5 6.5 2-2"></path>
+                                <path d="m17.5 15.5 2-2"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Misure</h2>
+                        <p class="text-slate-400 mt-2 text-sm md:text-base">Impostazioni tecniche per atleta e barca</p>
+                    </a>
+
                 </div>
             </div>
         </section>
@@ -297,6 +311,10 @@
                 coachNameEl.textContent = fullName.trim() || 'Coach';
                 coachSocietaEl.textContent = coach.societa || 'Nessuna società';
                 coachEmailEl.textContent = coach.email || '';
+
+                if (coach.coachOlimpica || coach.coachU19 || coach.coachU23 || coach.coachBeach) {
+                    document.getElementById('misure-card').classList.remove('hidden');
+                }
 
                 loaderOverlay.style.display = 'none';
                 document.body.style.visibility = 'visible';
