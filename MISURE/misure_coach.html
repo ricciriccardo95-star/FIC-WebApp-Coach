@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misure - FIC Coach</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- Avvia l'auth manager: gestisce protezione, redirect e dispatcha coachAuthStateReady -->
+    <script type="module" src="../auth-manager-coach.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0F172A; color: #E2E8F0; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; }
+        .accordion-content { overflow: hidden; transition: max-height 0.35s ease, opacity 0.3s ease; max-height: 0; opacity: 0; }
+        .accordion-content.open { max-height: 1000px; opacity: 1; }
+        .accordion-chevron { transition: transform 0.3s ease; }
+        .accordion-chevron.open { transform: rotate(180deg); }
+        input[type="text"] { background: rgba(15,23,42,0.6); border: 1px solid #475569; border-radius: 8px; padding: 8px 12px; color: #e2e8f0; width: 100%; outline: none; transition: border-color 0.2s; }
+        input[type="text"]:focus { border-color: #6366f1; }
+        .field-label { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 4px; }
+        select[data-field] { background: rgba(15,23,42,0.6); border: 1px solid #475569; border-radius: 8px; padding: 8px 12px; color: #e2e8f0; width: 100%; outline: none; transition: border-color 0.2s; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+        select[data-field]:focus { border-color: #6366f1; }
+        #athlete-results { max-height: 260px; overflow-y: auto; }
+        #athlete-results::-webkit-scrollbar { width: 4px; }
+        #athlete-results::-webkit-scrollbar-track { background: #1e293b; }
+        #athlete-results::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body class="antialiased min-h-screen p-4 md:p-8" style="visibility:hidden;">
+
+    <div class="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none overflow-hidden">
+        <div class="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/15 rounded-full blur-[120px]"></div>
+        <div class="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px]"></div>
+    </div>
+
+    <div id="loader-overlay" class="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-indigo-500 border-slate-700"></div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-6 right-6 z-[999] opacity-0 pointer-events-none transition-opacity duration-400">
+        <div id="toast-inner" class="px-5 py-3 rounded-xl text-sm font-bold shadow-2xl border"></div>
+    </div>
+
+    <div class="max-w-3xl mx-auto pb-32">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tight text-white">Misure</h1>
+                <p class="text-slate-400 text-sm mt-1">Registra le impostazioni tecniche per atleta e barca.</p>
+            </div>
+            <a href="../coach_home.html" class="bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors border border-slate-600 text-sm whitespace-nowrap">← Home</a>
+        </div>
+
+        <!-- Badge ruoli coach -->
+        <div id="coach-roles-bar" class="hidden flex flex-wrap gap-2 mb-8">
+        </div>
+
+        <!-- Step 1: Cerca atleta -->
+        <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 mb-6 backdrop-blur-md shadow-xl">
+            <h2 class="text-xs font-black uppercase tracking-widest text-indigo-400 mb-4">1 — Atleta</h2>
+
+            <!-- Atleta selezionato -->
+            <div id="selected-athlete-row" class="hidden mb-4 flex items-center gap-3 bg-slate-900/60 rounded-xl px-4 py-3 border border-indigo-500/30">
+                <span id="selected-athlete-name" class="font-bold text-white text-base flex-1"></span>
+                <span id="selected-athlete-badge" class="badge"></span>
+                <button id="change-athlete-btn" class="flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold py-1.5 px-3 rounded-lg border border-slate-500 transition-colors ml-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Cambia
+                </button>
+            </div>
+
+            <!-- Search -->
+            <div id="athlete-search-area">
+                <input type="text" id="athlete-search" placeholder="Cerca per cognome…" class="mb-2">
+                <div id="athlete-results" class="hidden bg-slate-900/80 border border-slate-700 rounded-xl overflow-hidden"></div>
+            </div>
+        </div>
+
+        <!-- Storico atleta -->
+        <div id="storico-section" class="hidden mb-6">
+            <h2 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 px-1">Schede salvate</h2>
+            <div id="storico-list" class="space-y-2"></div>
+        </div>
+
+        <!-- Step 2: Barca + Nome Scafo -->
+        <div id="step2" class="hidden bg-slate-800/60 border border-slate-700 rounded-2xl p-6 mb-6 backdrop-blur-md shadow-xl">
+            <h2 class="text-xs font-black uppercase tracking-widest text-indigo-400 mb-4">2 — Barca &amp; Nome Scafo</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tipo Barca</label>
+                    <select id="barca-select" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none">
+                        <option value="">-- Seleziona --</option>
+                        <option>1x</option><option>2x</option><option>2-</option>
+                        <option>4x</option><option>4-</option><option>4+</option><option>8+</option>
+                        <option>C1X</option><option>C2X</option><option>C4X</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nome Scafo</label>
+                    <input type="text" id="nome-scafo-input" placeholder="es. Filippi F31">
+                </div>
+            </div>
+            <button id="load-form-btn" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg transition-colors">
+                Continua →
+            </button>
+        </div>
+
+        <!-- Step 3: Scheda misure -->
+        <div id="step3" class="hidden space-y-4">
+
+            <!-- Accordion: Puntapiedi -->
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl">
+                <button type="button" class="accordion-btn w-full flex items-center justify-between px-6 py-4 hover:bg-slate-700/40 transition-colors" data-target="acc-puntapiedi">
+                    <span class="font-black text-sm uppercase tracking-widest text-sky-400">Puntapiedi</span>
+                    <svg class="accordion-chevron w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div id="acc-puntapiedi" class="accordion-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-6 pt-2">
+                        <div><label class="field-label">Avanzamento</label><input type="text" data-field="puntapiedi.avanzamento"></div>
+                        <div><label class="field-label">Profondità</label><input type="text" data-field="puntapiedi.profondita"></div>
+                        <div><label class="field-label">Numero Scarpe</label><input type="text" data-field="puntapiedi.numero_scarpe"></div>
+                        <div><label class="field-label">Inclinazione</label><input type="text" data-field="puntapiedi.inclinazione"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accordion: Scalmo -->
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl">
+                <button type="button" class="accordion-btn w-full flex items-center justify-between px-6 py-4 hover:bg-slate-700/40 transition-colors" data-target="acc-scalmo">
+                    <span class="font-black text-sm uppercase tracking-widest text-emerald-400">Scalmo</span>
+                    <svg class="accordion-chevron w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div id="acc-scalmo" class="accordion-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-6 pt-2">
+                        <div><label class="field-label">Tipo Scalmo</label><select data-field="scalmo.tipo"><option value="">--</option><option>Aliante carbonio</option><option>Aliante alluminio</option><option>Performance</option><option>Ala carbonio</option><option>Ala alluminio</option></select></div>
+                        <div><label class="field-label">Apertura Totale</label><input type="text" data-field="scalmo.apertura_totale"></div>
+                        <div><label class="field-label">Altezza Destra</label><input type="text" data-field="scalmo.altezza_destra"></div>
+                        <div><label class="field-label">Altezza Sinistra</label><input type="text" data-field="scalmo.altezza_sinistra"></div>
+                        <div class="md:col-span-2"><label class="field-label">Appru / Appo</label><input type="text" data-field="scalmo.appru_appo"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accordion: Carrello -->
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl">
+                <button type="button" class="accordion-btn w-full flex items-center justify-between px-6 py-4 hover:bg-slate-700/40 transition-colors" data-target="acc-carrello">
+                    <span class="font-black text-sm uppercase tracking-widest text-amber-400">Carrello</span>
+                    <svg class="accordion-chevron w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div id="acc-carrello" class="accordion-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-6 pt-2">
+                        <div><label class="field-label">Tipo Carrello</label><select data-field="carrello.modello"><option value="">--</option><option>Vecchio</option><option>Nuovo</option><option>Performance</option></select></div>
+                        <div><label class="field-label">Altezza</label><input type="text" data-field="carrello.altezza"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accordion: Remi -->
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl">
+                <button type="button" class="accordion-btn w-full flex items-center justify-between px-6 py-4 hover:bg-slate-700/40 transition-colors" data-target="acc-remi">
+                    <span class="font-black text-sm uppercase tracking-widest text-pink-400">Remi</span>
+                    <svg class="accordion-chevron w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div id="acc-remi" class="accordion-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-6 pt-2">
+                        <div><label class="field-label">Tipo Remi</label><select data-field="remi.tipo"><option value="">--</option><option>Smoothie</option><option>Comp</option><option>Vortex</option><option>Big blade</option><option>Fat blade</option></select></div>
+                        <div><label class="field-label">Lunghezza Totale</label><input type="text" data-field="remi.lunghezza_totale"></div>
+                        <div><label class="field-label">Lunghezza Interna</label><input type="text" data-field="remi.lunghezza_interna"></div>
+                        <div><label class="field-label">Rigidità Asta</label><select data-field="remi.rigidita_asta"><option value="">--</option><option>Medium</option><option>Soft</option><option>Hard</option></select></div>
+                        <div><label class="field-label">Tipo Asta</label><select data-field="remi.tipo_asta"><option value="">--</option><option>Skinny</option><option>Light</option><option>Ultra light</option></select></div>
+                        <div><label class="field-label">Manopole</label><select data-field="remi.manopole"><option value="">--</option><option>Slim</option><option>Medium</option><option>Large</option></select></div>
+                        <div><label class="field-label">Tipo Manopole</label><select data-field="remi.tipo_manopole"><option value="">--</option><option>Gomma</option><option>Anatomiche</option></select></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FAB Salva (fisso in basso) -->
+    <div id="save-fab" class="hidden fixed bottom-6 right-6 z-30">
+        <button id="save-btn" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 px-6 rounded-2xl shadow-2xl shadow-indigo-900/40 transition-all hover:scale-105">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salva
+        </button>
+    </div>
+
+    <script type="module">
+        import { db } from '../auth-manager-coach.js';
+        import {
+            collection, query, where, orderBy, getDocs, doc, setDoc, getDoc
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // — Badge —
+        function badgeClass(gruppo) {
+            const map = {
+                'Squadra olimpica': 'bg-sky-500 text-white',
+                'Senior':           'bg-indigo-500 text-white',
+                'Under 23':         'bg-teal-500 text-white',
+                'Under 19':         'bg-orange-500 text-white',
+                'Under 17':         'bg-lime-500 text-white',
+                'ParaRowing':       'bg-purple-500 text-white',
+                'Beach sprint':     'bg-amber-500 text-white',
+            };
+            return map[gruppo] || 'bg-slate-600 text-slate-200';
+        }
+
+        // — State —
+        let selectedAthleteId   = null;
+        let selectedAthleteName = null;
+        let allAthletes         = [];
+        let allowedGroups       = [];
+
+        // — Attende che l'auth sia pronta, poi avvia la pagina —
+        document.addEventListener('coachAuthStateReady', async (e) => {
+            const { coach } = e.detail;
+            if (!coach) return; // il redirect è già gestito dall'auth manager
+
+            // Costruisce la lista dei gruppi visibili a questo coach e mostra i badge
+            const rolesConfig = [
+                { flag: coach.coachOlimpica, label: 'Olimpica',  css: 'bg-sky-500/20 text-sky-300 border border-sky-500/40' },
+                { flag: coach.coachU19,      label: 'Under 19',  css: 'bg-orange-500/20 text-orange-300 border border-orange-500/40' },
+                { flag: coach.coachU23,      label: 'Under 23',  css: 'bg-teal-500/20 text-teal-300 border border-teal-500/40' },
+                { flag: coach.coachBeach,    label: 'Beach',     css: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' },
+            ];
+            const rolesBar = document.getElementById('coach-roles-bar');
+            rolesConfig.forEach(({ flag, label, css }) => {
+                if (!flag) return;
+                allowedGroups.push(label === 'Olimpica' ? 'Squadra olimpica' : label === 'Beach' ? 'Beach sprint' : label);
+                rolesBar.insertAdjacentHTML('beforeend',
+                    `<span class="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${css}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Coach ${label}
+                    </span>`
+                );
+            });
+            rolesBar.classList.remove('hidden');
+
+            document.getElementById('loader-overlay').classList.add('hidden');
+            document.body.style.visibility = 'visible';
+
+            await init();
+        });
+
+        // — Init —
+        async function init() {
+            // Carica solo gli atleti dei gruppi consentiti
+            const snap = await getDocs(query(collection(db, 'atleti'), orderBy('cognome')));
+            allAthletes = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(a => allowedGroups.includes(a.gruppo));
+
+            // Accordion
+            document.querySelectorAll('.accordion-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target  = document.getElementById(btn.dataset.target);
+                    const chevron = btn.querySelector('.accordion-chevron');
+                    const isOpen  = target.classList.contains('open');
+                    target.classList.toggle('open', !isOpen);
+                    chevron.classList.toggle('open', !isOpen);
+                });
+            });
+
+            // Search
+            const searchInput = document.getElementById('athlete-search');
+            const resultsBox  = document.getElementById('athlete-results');
+
+            searchInput.addEventListener('input', () => {
+                const q = searchInput.value.trim().toUpperCase();
+                if (!q) { resultsBox.classList.add('hidden'); resultsBox.innerHTML = ''; return; }
+                const filtered = allAthletes.filter(a => (a.cognome || '').toUpperCase().includes(q));
+                if (!filtered.length) {
+                    resultsBox.innerHTML = '<p class="text-slate-500 text-sm px-4 py-3">Nessun atleta trovato.</p>';
+                } else {
+                    resultsBox.innerHTML = filtered.map(a => `
+                        <div class="athlete-result flex items-center gap-3 px-4 py-3 hover:bg-slate-700/60 cursor-pointer border-b border-slate-700/50 last:border-0 transition-colors"
+                             data-id="${a.id}" data-cognome="${a.cognome || ''}" data-gruppo="${a.gruppo || ''}">
+                            <span class="font-bold text-white flex-1">${a.cognome || '-'}</span>
+                            <span class="badge ${badgeClass(a.gruppo)}">${a.gruppo || '-'}</span>
+                        </div>`).join('');
+                }
+                resultsBox.classList.remove('hidden');
+            });
+
+            resultsBox.addEventListener('click', e => {
+                const row = e.target.closest('.athlete-result');
+                if (!row) return;
+                selectAthlete(row.dataset.id, row.dataset.cognome, row.dataset.gruppo);
+            });
+
+            document.getElementById('change-athlete-btn').addEventListener('click', () => {
+                selectedAthleteId = null;
+                selectedAthleteName = null;
+                document.getElementById('selected-athlete-row').classList.add('hidden');
+                document.getElementById('athlete-search-area').classList.remove('hidden');
+                document.getElementById('storico-section').classList.add('hidden');
+                document.getElementById('storico-list').innerHTML = '';
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3').classList.add('hidden');
+                document.getElementById('save-fab').classList.add('hidden');
+                searchInput.value = '';
+                resultsBox.innerHTML = '';
+                resultsBox.classList.add('hidden');
+            });
+
+            document.getElementById('load-form-btn').addEventListener('click', loadForm);
+            document.getElementById('save-btn').addEventListener('click', saveData);
+        }
+
+        function selectAthlete(id, cognome, gruppo) {
+            selectedAthleteId   = id;
+            selectedAthleteName = cognome;
+
+            document.getElementById('athlete-search-area').classList.add('hidden');
+            document.getElementById('selected-athlete-name').textContent = cognome;
+            const badge = document.getElementById('selected-athlete-badge');
+            badge.textContent = gruppo || '-';
+            badge.className   = `badge ${badgeClass(gruppo)}`;
+            document.getElementById('selected-athlete-row').classList.remove('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+            loadStorico(id);
+        }
+
+        async function loadStorico(atletaId) {
+            const list    = document.getElementById('storico-list');
+            const section = document.getElementById('storico-section');
+            list.innerHTML = '<p class="text-slate-500 text-sm px-1">Caricamento...</p>';
+            section.classList.remove('hidden');
+
+            const snap = await getDocs(query(
+                collection(db, 'misure'),
+                where('atletaId', '==', atletaId)
+            ));
+
+            if (snap.empty) {
+                list.innerHTML = '<p class="text-slate-600 text-sm px-1">Nessuna scheda salvata per questo atleta.</p>';
+                return;
+            }
+
+            list.innerHTML = snap.docs.map(d => {
+                const data = d.data();
+                return `
+                <div class="storico-card flex items-center justify-between gap-3 bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 hover:border-indigo-500/50 transition-colors cursor-pointer"
+                     data-docid="${d.id}" data-barca="${data.barca || ''}" data-nome="${data.nome_scafo || ''}">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-2 py-1">${data.barca || '-'}</span>
+                        <span class="font-semibold text-white text-sm">${data.nome_scafo || '-'}</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 flex-shrink-0"><path d="M9 18l6-6-6-6"/></svg>
+                </div>`;
+            }).join('');
+
+            list.querySelectorAll('.storico-card').forEach(card => {
+                card.addEventListener('click', async () => {
+                    document.getElementById('barca-select').value     = card.dataset.barca;
+                    document.getElementById('nome-scafo-input').value = card.dataset.nome;
+
+                    const snap = await getDoc(doc(db, 'misure', card.dataset.docid));
+                    if (snap.exists()) fillForm(snap.data());
+                    else clearForm();
+
+                    document.getElementById('step3').classList.remove('hidden');
+                    document.getElementById('save-fab').classList.remove('hidden');
+                    document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+        }
+
+        async function loadForm() {
+            const barca     = document.getElementById('barca-select').value;
+            const nomeScafo = document.getElementById('nome-scafo-input').value.trim();
+            if (!barca || !nomeScafo) {
+                showToast('Seleziona barca e inserisci il nome scafo.', false);
+                return;
+            }
+
+            document.getElementById('step3').classList.remove('hidden');
+            document.getElementById('save-fab').classList.remove('hidden');
+
+            const docId  = `${selectedAthleteId}_${barca}_${nomeScafo.replace(/\s+/g, '_')}`;
+            const snap   = await getDoc(doc(db, 'misure', docId));
+            if (snap.exists()) {
+                fillForm(snap.data());
+                showToast('Dati esistenti caricati.', true);
+            } else {
+                clearForm();
+            }
+        }
+
+        function fillForm(data) {
+            document.querySelectorAll('[data-field]').forEach(inp => {
+                const keys = inp.dataset.field.split('.');
+                inp.value  = keys.length === 2 ? (data[keys[0]]?.[keys[1]] || '') : (data[keys[0]] || '');
+            });
+        }
+
+        function clearForm() {
+            document.querySelectorAll('[data-field]').forEach(inp => inp.value = '');
+        }
+
+        async function saveData() {
+            const barca     = document.getElementById('barca-select').value;
+            const nomeScafo = document.getElementById('nome-scafo-input').value.trim();
+            if (!selectedAthleteId || !barca || !nomeScafo) {
+                showToast('Dati incompleti.', false); return;
+            }
+
+            const payload = {
+                atletaId:   selectedAthleteId,
+                atleta:     selectedAthleteName,
+                barca,
+                nome_scafo: nomeScafo,
+                puntapiedi: {}, scalmo: {}, carrello: {}, remi: {}
+            };
+
+            document.querySelectorAll('[data-field]').forEach(inp => {
+                const [section, field] = inp.dataset.field.split('.');
+                payload[section][field] = inp.value.trim();
+            });
+
+            try {
+                const docId = `${selectedAthleteId}_${barca}_${nomeScafo.replace(/\s+/g, '_')}`;
+                await setDoc(doc(db, 'misure', docId), payload, { merge: true });
+                showToast('Salvato!', true);
+            } catch (e) {
+                console.error(e);
+                showToast('Errore durante il salvataggio.', false);
+            }
+        }
+
+        // — Toast —
+        function showToast(msg, ok) {
+            const el    = document.getElementById('toast');
+            const inner = document.getElementById('toast-inner');
+            inner.textContent = msg;
+            inner.className = ok
+                ? 'px-5 py-3 rounded-xl text-sm font-bold shadow-2xl border bg-emerald-900/90 border-emerald-500/50 text-emerald-300'
+                : 'px-5 py-3 rounded-xl text-sm font-bold shadow-2xl border bg-red-900/90 border-red-500/50 text-red-300';
+            el.style.opacity = '1';
+            setTimeout(() => { el.style.opacity = '0'; }, 3000);
+        }
+    </script>
+</body>
+</html>
