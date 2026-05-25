@@ -192,7 +192,7 @@
     <script type="module">
         import { db } from '../auth-manager-coach.js';
         import {
-            collection, query, where, orderBy, getDocs, doc, setDoc, getDoc
+            collection, query, where, orderBy, getDocs, doc, setDoc, getDoc, deleteDoc
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // — Badge —
@@ -344,28 +344,53 @@
             list.innerHTML = snap.docs.map(d => {
                 const data = d.data();
                 return `
-                <div class="storico-card flex items-center justify-between gap-3 bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 hover:border-indigo-500/50 transition-colors cursor-pointer"
+                <div class="storico-card flex items-center gap-3 bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 hover:border-indigo-500/50 transition-colors"
                      data-docid="${d.id}" data-barca="${data.barca || ''}" data-nome="${data.nome_scafo || ''}">
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 flex-1 cursor-pointer storico-open">
                         <span class="text-xs font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-2 py-1">${data.barca || '-'}</span>
                         <span class="font-semibold text-white text-sm">${data.nome_scafo || '-'}</span>
                     </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 flex-shrink-0"><path d="M9 18l6-6-6-6"/></svg>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 storico-open cursor-pointer"><path d="M9 18l6-6-6-6"/></svg>
+                        <button class="storico-delete p-1.5 rounded-lg hover:bg-red-500/20 text-red-500 hover:text-red-400 transition-colors" title="Elimina scheda">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                        </button>
+                    </div>
                 </div>`;
             }).join('');
 
             list.querySelectorAll('.storico-card').forEach(card => {
-                card.addEventListener('click', async () => {
-                    document.getElementById('barca-select').value     = card.dataset.barca;
-                    document.getElementById('nome-scafo-input').value = card.dataset.nome;
+                // Apri scheda
+                card.querySelectorAll('.storico-open').forEach(el => {
+                    el.addEventListener('click', async () => {
+                        document.getElementById('barca-select').value     = card.dataset.barca;
+                        document.getElementById('nome-scafo-input').value = card.dataset.nome;
 
-                    const snap = await getDoc(doc(db, 'misure', card.dataset.docid));
-                    if (snap.exists()) fillForm(snap.data());
-                    else clearForm();
+                        const snap = await getDoc(doc(db, 'misure', card.dataset.docid));
+                        if (snap.exists()) fillForm(snap.data());
+                        else clearForm();
 
-                    document.getElementById('step3').classList.remove('hidden');
-                    document.getElementById('save-fab').classList.remove('hidden');
-                    document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        document.getElementById('step3').classList.remove('hidden');
+                        document.getElementById('save-fab').classList.remove('hidden');
+                        document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                });
+
+                // Elimina scheda
+                card.querySelector('.storico-delete').addEventListener('click', async () => {
+                    const label = `${card.dataset.barca} — ${card.dataset.nome}`;
+                    if (!confirm(`Eliminare la scheda "${label}"?`)) return;
+                    try {
+                        await deleteDoc(doc(db, 'misure', card.dataset.docid));
+                        card.remove();
+                        showToast('Scheda eliminata.', true);
+                        if (!list.querySelector('.storico-card')) {
+                            list.innerHTML = '<p class="text-slate-600 text-sm px-1">Nessuna scheda salvata per questo atleta.</p>';
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        showToast('Errore durante l\'eliminazione.', false);
+                    }
                 });
             });
         }
