@@ -178,6 +178,19 @@
                 </div>
             </div>
 
+            <!-- Accordion: Scafo -->
+            <div class="bg-slate-800/60 border border-slate-700 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl">
+                <button type="button" class="accordion-btn w-full flex items-center justify-between px-6 py-4 hover:bg-slate-700/40 transition-colors" data-target="acc-scafo">
+                    <span class="font-black text-sm uppercase tracking-widest text-violet-400">Scafo</span>
+                    <svg class="accordion-chevron w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div id="acc-scafo" class="accordion-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-6 pt-2">
+                        <div><label class="field-label">Filo Acqua</label><input type="text" data-field="scafo.filo_acqua"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -439,7 +452,7 @@
                 atleta:     selectedAthleteName,
                 barca,
                 nome_scafo: nomeScafo,
-                puntapiedi: {}, scalmo: {}, carrello: {}, remi: {}
+                puntapiedi: {}, scalmo: {}, carrello: {}, remi: {}, scafo: {}
             };
 
             document.querySelectorAll('[data-field]').forEach(inp => {
