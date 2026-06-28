@@ -114,30 +114,38 @@
         const forgotPasswordLink = document.getElementById('forgot-password-link');
 
         // --- Listener per il recupero password ---
+        let resetCooldown = false;
+
         forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault(); 
-            
+            e.preventDefault();
+            if (resetCooldown) return;
+
             const email = loginForm.email.value;
             if (!email) {
                 showMessage("Per favore, inserisci la tua email nel campo apposito.", 'error');
                 return;
             }
 
+            resetCooldown = true;
+            forgotPasswordLink.style.pointerEvents = 'none';
+            forgotPasswordLink.style.opacity = '0.4';
             loginButton.disabled = true;
-            showMessage("Invio email di recupero...", 'success'); 
+            showMessage("Invio email di recupero...", 'success');
 
             try {
                 await sendPasswordResetEmail(auth, email);
-                showMessage("Email inviata! Controlla la tua casella di posta.", 'success');
             } catch (error) {
-                console.error("Errore invio email reset:", error.code, error.message);
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/missing-email') {
-                    showMessage("Nessun utente trovato con questa email.", 'error');
-                } else {
-                    showMessage("Si è verificato un errore. Riprova.", 'error');
-                }
+                console.error("Errore invio email reset:", error.code);
             } finally {
+                // Mostra sempre lo stesso messaggio: non rivela se l'email esiste
+                showMessage("Se questa email è registrata, riceverai un link a breve.", 'success');
                 loginButton.disabled = false;
+                // Cooldown 60 secondi per prevenire spam
+                setTimeout(() => {
+                    resetCooldown = false;
+                    forgotPasswordLink.style.pointerEvents = '';
+                    forgotPasswordLink.style.opacity = '';
+                }, 60000);
             }
         });
 
