@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Conta Colpi - Coach</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module" src="../auth-manager-coach.js"></script>
+
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0F172A;
+        color: #E2E8F0;
+        -webkit-font-smoothing: antialiased;
+        /* Il tasto COLPO si preme in fretta e ripetutamente: senza questo
+           il doppio tocco fa zoomare la pagina sul telefono. */
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    .background-gradient { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); filter: blur(100px); z-index: -1; }
+    .gradient-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%); animation: pulse 10s infinite alternate; }
+    .gradient-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(56, 189, 248, 0.15), transparent 70%); animation: pulse 12s infinite alternate-reverse; }
+    @keyframes pulse { 0% { transform: scale(0.9) rotate(0deg); } 100% { transform: scale(1.2) rotate(20deg); } }
+
+    .glass { background: rgba(30,41,59,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .tabnum { font-variant-numeric: tabular-nums; }
+    #tap:active { transform: scale(0.985); background: rgba(99,102,241,0.22); }
+</style>
+</head>
+<body class="antialiased min-h-screen p-4 md:p-8 flex flex-col">
+
+<div class="background-gradient gradient-1"></div>
+<div class="background-gradient gradient-2"></div>
+
+<div class="max-w-2xl w-full mx-auto flex-1 flex flex-col">
+
+    <div class="flex items-center gap-3 mb-5">
+        <a href="../coach_home.html" class="glass px-3 py-2 rounded-xl text-slate-300 hover:text-white transition-colors" title="Torna alla home">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div>
+            <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white">CONTA COLPI</h1>
+            <p class="text-slate-400 text-xs md:text-sm">Batti a ogni passaggio in vasca.</p>
+        </div>
+    </div>
+
+    <!-- Base di calcolo -->
+    <div class="mb-3">
+        <div class="text-[11px] font-black tracking-widest text-slate-300 mb-2">BASE</div>
+        <div id="basi" class="glass rounded-xl p-1 grid grid-cols-3 gap-1"></div>
+        <p class="text-[11px] text-slate-500 mt-2 leading-relaxed">
+            Su quanti colpi calcolare il ritmo. Base 1 risponde subito ma oscilla, base 5 è la più stabile.
+        </p>
+    </div>
+
+    <!-- Lettura -->
+    <div class="glass rounded-2xl py-6 text-center mb-3" style="border-color: rgba(99,102,241,0.25);">
+        <div id="ritmo" class="mono tabnum text-6xl font-black text-indigo-300 tracking-tight">--.-</div>
+        <div class="text-[10px] font-black tracking-[0.2em] text-slate-400 mt-1">COLPI / MIN</div>
+        <div id="stato" class="text-xs text-slate-500 mt-3">Batti per far partire il conteggio</div>
+    </div>
+
+    <!-- Battuta -->
+    <button id="tap" class="flex-1 min-h-[40vh] rounded-3xl border border-indigo-400/40 bg-indigo-500/10 flex flex-col items-center justify-center gap-3 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20l6-6"/><path d="M14 10l6-6"/><circle cx="12" cy="12" r="2"/><path d="M20 4h-4v4"/><path d="M4 20h4v-4"/>
+        </svg>
+        <span class="text-xl font-black tracking-[0.2em] text-indigo-300">COLPO</span>
+    </button>
+
+    <button id="azzera" class="py-3 mt-3 flex items-center justify-center gap-2 text-slate-400 font-bold hover:text-white disabled:opacity-40 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/></svg>
+        Azzera
+    </button>
+</div>
+
+<script type="module">
+import { BASI, registraTocco, ritmo, colpiContati, tocchiMancanti } from './colpi.js';
+
+let tocchi = [];
+let base = 3;
+
+const elRitmo = document.getElementById('ritmo');
+const elStato = document.getElementById('stato');
+const elBasi  = document.getElementById('basi');
+const elAzzera = document.getElementById('azzera');
+
+function renderBasi() {
+    elBasi.innerHTML = BASI.map(b => `
+        <button data-base="${b}" class="py-3 rounded-lg mono font-black text-base transition-colors ${
+            b === base ? 'bg-indigo-400 text-slate-900' : 'text-slate-400 hover:bg-slate-700/50'
+        }">${b}</button>`).join('');
+}
+
+function render() {
+    const spm = ritmo(tocchi, base);
+    elRitmo.textContent = spm ? spm.toFixed(1) : '--.-';
+
+    const mancanti = tocchiMancanti(tocchi, base);
+    const colpi = colpiContati(tocchi);
+    elStato.textContent =
+        tocchi.length === 0 ? 'Batti per far partire il conteggio'
+        : mancanti > 0      ? `Ancora ${mancanti} ${mancanti === 1 ? 'colpo' : 'colpi'} per la prima lettura`
+        :                     `${colpi} ${colpi === 1 ? 'colpo' : 'colpi'} contati`;
+
+    elAzzera.disabled = tocchi.length === 0;
+    renderBasi();
+}
+
+// pointerdown invece di click: il ritmo si misura sull'istante in cui il dito
+// tocca, non quando lo si solleva.
+document.getElementById('tap').addEventListener('pointerdown', () => {
+    tocchi = registraTocco(tocchi, Date.now());
+    render();
+});
+
+elBasi.addEventListener('click', e => {
+    const b = e.target.closest('button[data-base]');
+    if (!b) return;
+    base = Number(b.dataset.base);
+    render();
+});
+
+elAzzera.addEventListener('click', () => { tocchi = []; render(); });
+
+render();
+</script>
+</body>
+</html>
