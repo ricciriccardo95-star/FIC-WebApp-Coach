@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strumenti - Coach</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module" src="../auth-manager-coach.js"></script>
+
+<style>
+    body { font-family: 'Inter', sans-serif; background-color: #0F172A; color: #E2E8F0; -webkit-font-smoothing: antialiased; }
+    .background-gradient { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); filter: blur(100px); z-index: -1; }
+    .gradient-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(217, 70, 239, 0.22), transparent 70%); animation: pulse 10s infinite alternate; }
+    .gradient-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(139, 92, 246, 0.18), transparent 70%); animation: pulse 12s infinite alternate-reverse; }
+    @keyframes pulse { 0% { transform: scale(0.9) rotate(0deg); } 100% { transform: scale(1.2) rotate(20deg); } }
+
+    /* Stesso comportamento delle card della home */
+    .nav-card { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+    .nav-card:hover { transform: translateY(-6px); border-color: rgba(217,70,239,0.4); box-shadow: 0 18px 30px -12px rgba(0,0,0,0.6); }
+    .icon-container { margin-bottom: 0.75rem; }
+</style>
+</head>
+<body class="antialiased min-h-screen p-4 md:p-8">
+
+<div class="background-gradient gradient-1"></div>
+<div class="background-gradient gradient-2"></div>
+
+<div class="max-w-4xl mx-auto pb-16">
+
+    <div class="flex items-center gap-3 mb-8">
+        <a href="../coach_home.html" class="bg-slate-900/70 border border-slate-700/50 backdrop-blur-lg px-3 py-2 rounded-xl text-slate-300 hover:text-white transition-colors" title="Torna alla home">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div>
+            <h1 class="text-2xl md:text-4xl font-black tracking-tight text-white">STRUMENTI</h1>
+            <p class="text-slate-400 text-xs md:text-sm">Cronometraggio e analisi</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 md:gap-8">
+
+                    <a href="../CRONOMETRI/cronometri.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="icon-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 md:w-16 md:h-16 text-fuchsia-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="13" r="8"></circle>
+                                <path d="M12 9v4l2 2"></path>
+                                <path d="M9 2h6"></path>
+                                <path d="m19 5 1.5-1.5"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Cronometri</h2>
+                        <p class="text-slate-400 mt-2 text-sm md:text-base">Più prove, con i giri</p>
+                    </a>
+
+                    <a href="../CONTACOLPI/contacolpi.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="icon-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 md:w-16 md:h-16 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 20l6-6"></path>
+                                <path d="M14 10l6-6"></path>
+                                <circle cx="12" cy="12" r="2"></circle>
+                                <path d="M20 4h-4v4"></path>
+                                <path d="M4 20h4v-4"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Conta colpi</h2>
+                        <p class="text-slate-400 mt-2 text-sm md:text-base">Ritmo di voga</p>
+                    </a>
+
+                    <a href="../DISPENDIO/dispendi.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="icon-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 md:w-16 md:h-16 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" x2="16" y1="6" y2="6"></line><line x1="12" x2="12" y1="10" y2="18"></line><line x1="8" x2="16" y1="14" y2="14"></line>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Dispendio</h2>
+                        <p class="text-slate-400 mt-2 text-sm md:text-base">(Peso)</p>
+                    </a>
+
+                    <a href="../DISPENDIO BARCA/dispendio_boat.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="icon-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 md:w-16 md:h-16 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 12h4l3-9 5 18 3-9h5"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Dispendio</h2>
+                        <p class="text-slate-400 mt-2 text-sm md:text-base">(Barca)</p>
+                    </a>
+
+                    <a href="../GRAFICI/grafici_coach.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="icon-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 md:w-16 md:h-16 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 3v18h18"></path>
+                                <path d="m19 9-5 5-4-4-3 3"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Grafici</h2>
+                        <p class="text-slate-400 mt-2 text-sm md:text-base">Analisi dati</p>
+                    </a>
+
+                    <a href="../EFFICIENZA/efficienza_coach.html" class="nav-card block bg-slate-900/70 border border-slate-700/50 rounded-2xl backdrop-blur-lg p-6 md:p-12 flex flex-col justify-center items-center text-center">
+                        <div class="icon-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 md:w-16 md:h-16 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 15l-2-2"></path>
+                                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl md:text-4xl font-bold text-white">Efficienza</h2>
+                        <p class="text-slate-400 mt-2 text-sm md:text-base">Analisi tecnica</p>
+                    </a>
+
+    </div>
+</div>
+
+</body>
+</html>
