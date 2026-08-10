@@ -46,11 +46,23 @@
             <div id="form-content" class="space-y-6 hidden">
                 
                 <div>
+                    <label for="categorySelect" class="form-label">Categoria record</label>
+                    <select id="categorySelect" class="form-select">
+                        <option value="assoluto" selected>Assoluto</option>
+                        <option value="u23">Under 23</option>
+                        <option value="u23adat">Under 23 adattati</option>
+                        <option value="u19">Under 19</option>
+                        <option value="u19adat">Under 19 adattati</option>
+                    </select>
+                </div>
+
+                <div>
                     <label for="boatTypeSelect" class="form-label flex items-center gap-2">
                         <span>Imbarcazione</span>
                         <span id="gender-indicator"></span>
                     </label>
                     <select id="boatTypeSelect" class="form-select"></select>
+                    <p id="wr-hint" class="text-xs mt-2 text-slate-400"></p>
                 </div>
 
                 <div>
@@ -73,7 +85,8 @@
                 <div id="resultContainer" class="hidden mt-6 p-6 bg-slate-800 border border-slate-600 rounded-xl text-center">
                     <p class="text-slate-400 font-medium mb-1">Dispendio Calcolato (EP)</p>
                     <p id="resultEP" class="text-5xl font-black text-white"></p>
-                    
+                    <p id="resultRif" class="text-xs text-slate-500 mt-2"></p>
+
                     <div id="warningMsg" class="hidden mt-4 text-sm text-red-400 bg-red-900/30 p-2 rounded">
                         Attenzione: Valore fuori scala (>110%). Verifica i dati inseriti.
                     </div>
@@ -96,21 +109,62 @@
     </div>
 
     <script type="module">
-        // Record mondiali hardcoded
+        // ── Record mondiali per categoria ────────────────────────────────
+        // Stesse tabelle usate dalla dashboard (GRAFICI/grafici_worldrowing.html).
         const worldRecords = {
-            "M1X": "06:30.74",
-            "M2X": "05:59.70",
-            "M4X": "05:32.50",
-            "M2-": "06:08.50",
-            "M4-": "05:38.00",
-            "M8+": "05:18.68",
-            "W1X": "07:07.71",
-            "W2X": "06:37.31",
-            "W4X": "06:06.84",
-            "W2-": "06:47.41",
-            "W4-": "06:14.36",
-            "W8+": "05:52.99"
+            "M1X":"06:30.74","M2X":"05:59.70","M4X":"05:32.50","M2-":"06:08.50","M4-":"05:38.00","M8+":"05:18.68",
+            "W1X":"07:07.71","W2X":"06:37.31","W4X":"06:06.84","W2-":"06:47.41","W4-":"06:14.36","W8+":"05:52.99",
+            "M1X PL":"06:39.56","M2X PL":"06:05.33","W1X PL":"07:23.36","W2X PL":"06:40.47"
         };
+        // U19 e U23 "veri": usano sigle proprie (J… e B…), da qui la conversione
+        // del nome barca in getRecordStr.
+        const worldRecordsU19 = {
+            "JM1X":"06:45.45","JM2X":"06:18.19","JM4X":"05:46.49","JM2-":"06:27.91","JM4-":"05:47.73","JM8+":"05:33.43",
+            "JM4+":"06:11.96","JM2+":"07:10.01",
+            "JW1X":"07:31.50","JW2X":"06:57.40","JW4X":"06:23.85","JW2-":"07:15.53","JW4-":"06:32.76","JW8+":"06:12.16",
+            "JW4+":"06:52.84"
+        };
+        const worldRecordsU23 = {
+            "BM1X":"06:42.08","BM2X":"06:07.57","BM4X":"05:39.53","BM2-":"06:19.70","BM4-":"05:44.38","BM8+":"05:22.48",
+            "BM4+":"06:02.90",
+            "BW1X":"07:13.69","BW2X":"06:46.84","BW4X":"06:15.97","BW2-":"06:58.41","BW4-":"06:22.29","BW8+":"06:00.13",
+            "BW4+":"06:44.15",
+            "BLM1X":"06:46.34","BLM2X":"06:13.62","BLM4X":"05:45.42","BLM2-":"06:26.47","BLM4-":"05:54.12",
+            "BLW1X":"07:24.59","BLW2X":"06:41.48","BLW4X":"06:25.96","BLW2-":"07:17.42",
+            "BM1X PL":"06:46.34","BM2X PL":"06:13.62","BW1X PL":"07:24.59","BW2X PL":"06:41.48"
+        };
+        // Gli "adattati" non sono record di qualcuno: sono gli assoluti riportati
+        // al livello della categoria togliendo una quota fissa di watt. Servono
+        // perché gli U19/U23 veri coprono barche diverse e usano altre sigle.
+        const worldRecordsU23Adat = {
+            "M1X":"06:39.33","M2X":"06:07.61","M4X":"05:39.81","M2-":"06:16.60","M4-":"05:45.43","M8+":"05:25.69",
+            "W1X":"07:17.11","W2X":"06:46.05","W4X":"06:14.91","W2-":"06:56.37","W4-":"06:22.59","W8+":"06:00.75"
+        };
+        const worldRecordsU19Adat = {
+            "M1X":"06:49.71","M2X":"06:17.17","M4X":"05:48.64","M2-":"06:26.39","M4-":"05:54.41","M8+":"05:34.15","M4+":"06:10.15",
+            "W1X":"07:28.48","W2X":"06:56.60","W4X":"06:24.65","W2-":"07:07.19","W4-":"06:32.54","W8+":"06:10.13","W4+":"06:56.76",
+            "LM1X":"06:53.59","LM2X":"06:20.87","LM4X":"05:52.67","LM2-":"06:33.72","LM4-":"06:01.37",
+            "LW1X":"07:37.20","LW2X":"06:54.09","LW4X":"06:38.57","LW2-":"07:30.03"
+        };
+
+        const ETICHETTE_CATEGORIA = {
+            assoluto: 'Assoluto',
+            u23:      'Under 23',
+            u23adat:  'Under 23 adattati',
+            u19:      'Under 19',
+            u19adat:  'Under 19 adattati'
+        };
+
+        /** Record della barca nella categoria scelta, oppure null se non esiste. */
+        function getRecordStr(boatType, category) {
+            if (!boatType) return null;
+            const bt = boatType.toUpperCase();
+            if (category === 'u23adat') return worldRecordsU23Adat[bt] || null;
+            if (category === 'u19adat') return worldRecordsU19Adat[bt] || null;
+            if (category === 'u19') { const k = bt.replace(/^M/, 'JM').replace(/^W/, 'JW'); return worldRecordsU19[k] || null; }
+            if (category === 'u23') { const k = bt.replace(/^M/, 'BM').replace(/^W/, 'BW'); return worldRecordsU23[k] || null; }
+            return worldRecords[bt] || null;
+        }
 
         // --- UTILS ---
         const showModal = (modal) => { document.getElementById('modal-backdrop').classList.remove('hidden'); modal.classList.remove('hidden'); };
@@ -158,12 +212,38 @@
                 if(v.startsWith('M')) ind.innerHTML = '<div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">M</div>';
                 else if(v.startsWith('W')) ind.innerHTML = '<div class="w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-sm">F</div>';
                 else ind.innerHTML = '';
+                aggiornaHintRecord();
             });
+
+            document.getElementById('categorySelect').addEventListener('change', () => {
+                aggiornaHintRecord();
+                // Il risultato si riferiva alla categoria precedente: nasconderlo
+                // evita di leggere un EP che non corrisponde più a quanto scelto.
+                document.getElementById('resultContainer').classList.add('hidden');
+            });
+        }
+
+        /** Mostra sotto la barca il record attivo, o avvisa se la categoria non lo prevede. */
+        function aggiornaHintRecord() {
+            const boat = document.getElementById('boatTypeSelect').value;
+            const cat  = document.getElementById('categorySelect').value;
+            const hint = document.getElementById('wr-hint');
+
+            if (!boat) { hint.textContent = ''; return; }
+            const wr = getRecordStr(boat, cat);
+            if (wr) {
+                hint.className = 'text-xs mt-2 text-slate-400';
+                hint.innerHTML = `Record ${ETICHETTE_CATEGORIA[cat]}: <span class="font-bold text-blue-400">${wr}</span>`;
+            } else {
+                hint.className = 'text-xs mt-2 text-red-400';
+                hint.textContent = `Nessun record per ${boat} nella categoria ${ETICHETTE_CATEGORIA[cat]}.`;
+            }
         }
 
         // --- CALCOLO EP ---
         function calculateEP() {
             const boatType = document.getElementById('boatTypeSelect').value;
+            const category = document.getElementById('categorySelect').value;
             const distance = parseInt(document.getElementById('distanzaInput').value, 10);
             const timeStr = document.getElementById('tempoInput').value;
             const resultContainer = document.getElementById('resultContainer');
@@ -179,10 +259,10 @@
                 return showMessageBox("Il formato del tempo deve essere completo (mm:ss.d).");
             }
 
-            // Recupera il Record del Mondo dall'oggetto locale
-            const wrTime = worldRecords[boatType];
+            // Recupera il record della categoria selezionata
+            const wrTime = getRecordStr(boatType, category);
             if (!wrTime) {
-                return showMessageBox(`Nessun World Record trovato per la barca ${boatType}.`);
+                return showMessageBox(`Nessun record per ${boatType} nella categoria ${ETICHETTE_CATEGORIA[category]}.`);
             }
 
             const wrSec = timeToSeconds(wrTime);
@@ -198,6 +278,8 @@
 
             // Mostra i risultati
             resultEP.textContent = ep.toFixed(2) + '%';
+            document.getElementById('resultRif').textContent =
+                `${boatType} · ${ETICHETTE_CATEGORIA[category]} · record ${wrTime}`;
             
             // Colora il testo in base all'intensità
             resultEP.className = 'text-5xl font-black mt-2 ';
